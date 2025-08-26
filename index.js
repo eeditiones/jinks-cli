@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import axios from "axios";
 import tough from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
