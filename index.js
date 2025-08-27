@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import axios from "axios";
-import tough from "tough-cookie";
+import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
 import chalk from "chalk";
 import { Command, Option } from "commander";
@@ -293,7 +293,7 @@ function printBanner(options) {
 }
 
 function initClient(options) {
-    const cookieJar = new tough.CookieJar();
+    const cookieJar = new CookieJar();
     return wrapper(
         axios.create({
             baseURL: options.server,
