@@ -11,6 +11,20 @@ import { input, checkbox, confirm, editor, select, Separator } from "@inquirer/p
 import Table from "cli-table3";
 import ora from "ora";
 import figlet from "figlet";
+import dotenv from "dotenv";
+import terminalLink from "terminal-link";
+
+// Load environment variables from .env file
+// Temporarily suppress console output to avoid dotenv messages
+const originalConsoleLog = console.log;
+console.log = () => {};
+dotenv.config({ 
+    silent: true, 
+    debug: false,
+    override: false,
+    path: '.env'
+});
+console.log = originalConsoleLog;
 
 let DEFAULT_CONFIG = {
     "pkg": {
@@ -33,12 +47,12 @@ process.on('SIGINT', () => {
 const program = new Command();
 
 // Shared options for all commands
-const serverOption = new Option("-s, --server <address>", "Server address").default("http://localhost:8080/exist/apps/jinks");
-const userOption = new Option("-u, --user <username>", "Username").default("tei");
-const passwordOption = new Option("-p, --password <password>", "Password").default("simple");
+const serverOption = new Option("-s, --server <address>", "Server address").default(process.env.JINKS_SERVER || "http://localhost:8080/exist/apps/jinks");
+const userOption = new Option("-u, --user <username>", "Username").default(process.env.JINKS_USER || "tei");
+const passwordOption = new Option("-p, --password <password>", "Password").default(process.env.JINKS_PASSWORD || "simple");
 const editOption = new Option("-e, --edit", "Use text editor rather than interactive mode to modify configuration.");
 const reinstallOption = new Option("-r, --reinstall", "Fully reinstall application, overwriting existing files.");
-const forceOption = new Option("-f, --force", "Ignore last modified date and check every file for changes.");
+const forceOption = new Option("-a, --all", "Ignore last modified date and check every file for changes.");
 const quietOption = new Option("-q, --quiet", "Do not print banner.");
 
 // Hook to run before any command action
@@ -59,7 +73,7 @@ program.command("list")
     .addOption(serverOption)
     .action(async (options, command) => {
         try {
-            listInstalledApplications(command.allConfigurations);
+            listInstalledApplications(command.allConfigurations, options.server);
         } catch (error) {
             console.error(error);
         }
@@ -74,6 +88,7 @@ program
     .addOption(passwordOption)
     .addOption(editOption)
     .addOption(quietOption)
+    .addOption(new Option("-c, --config <file>", "Use the given configuration file rather than interactive mode to create the application.").implies({ quiet: true }))
     .action(async (abbrev, options, command) => {
         printBanner(options);
         try {
@@ -85,6 +100,9 @@ program
             }
             const config = await createConfiguration(baseConfig, options, command.allConfigurations, command.client);
             await update(config, options, command.client);
+            
+            // Show application link after successful creation
+            showApplicationLink(config, options.server, "created");
         } catch (error) {
             console.error(error);
         }
@@ -113,6 +131,9 @@ program
             }
             config = await editOrCreateConfiguration(config.config, options, command.allConfigurations, command.client);
             await update(config, options, command.client);
+            
+            // Show application link after successful update
+            showApplicationLink(config, options.server, "updated");
         } catch (error) {
             console.error(error);
         }
@@ -342,15 +363,37 @@ function loadConfigFromFile(filePath) {
     }
 }
 
+// Helper function to show application link
+function showApplicationLink(config, serverUrl, action = "created") {
+    const baseUrl = serverUrl.replace('/jinks', '');
+    const appUrl = `${baseUrl}/${config.pkg.abbrev}`;
+    const link = terminalLink(config.pkg.abbrev, appUrl);
+    console.log(chalk.blue(`\nApplication ${action} successfully!`));
+    console.log(chalk.blue(`Access your application: ${link}`));
+}
+
 // Helper function to list installed applications
-function listInstalledApplications(allConfigurations) {
+function listInstalledApplications(allConfigurations, serverUrl) {
     console.log(chalk.blue('Installed applications:\n'));
     const configs = allConfigurations
         .filter(
             (item) => item.type === "installed",
-        )
-        .map((item) => item.config.pkg.abbrev);
-    console.log(configs.join("\n"));
+        );
+    
+    if (configs.length === 0) {
+        console.log(chalk.yellow('No applications found.'));
+        return;
+    }
+    
+    // Compute application URLs by replacing /jinks with the app's abbrev
+    const baseUrl = serverUrl.replace('/jinks', '');
+    
+    configs.forEach((config) => {
+        const abbrev = config.config.pkg.abbrev;
+        const appUrl = `${baseUrl}/${abbrev}`;
+        const link = terminalLink(abbrev, appUrl);
+        console.log(`${link}`);
+    });
 }
 
 async function expandConfig(config, client) {
@@ -406,10 +449,12 @@ async function editOrCreateConfiguration(config, options, allConfigurations, cli
             postfix: ".json"
         });
         config = JSON.parse(edited);
+    } else if (options.config) {
+        config = loadConfigFromFile(options.config);
     } else {
         // If no file is provided, use interactive prompts
         try {
-            config = await collectConfigInteractively(config, allConfigurations, config?.extends);
+            config = await collectConfigInteractively(config, allConfigurations, config?.extends, create);
         } catch (error) {
             if (error.name === 'ExitPromptError' || error.message.includes('SIGINT')) {
                 console.log(chalk.yellow('\nOperation cancelled by user.'));
@@ -422,10 +467,19 @@ async function editOrCreateConfiguration(config, options, allConfigurations, cli
         }
     }
 
+    // Check for existing configuration with same id or abbrev
+    const existingConfigById = allConfigurations.find(item => item.type === "installed" && item.config.id === config.id);
+    const existingConfigByAbbrev = allConfigurations.find(item => item.type === "installed" && item.config.pkg.abbrev === config.pkg.abbrev);
+
+    if (create && (existingConfigById || existingConfigByAbbrev)) {
+        console.error(chalk.red('A configuration with this id or abbreviated name already exists'));
+        process.exit(1);
+    }
+
     console.log("\n" + chalk.blue("Using configuration:"));
     console.log(JSON.stringify(config, null, 2));
 
-    if (create) {
+    if (create && !options.config) {
         const shouldEdit = await confirm({
             message: "Would you like to edit this configuration?",
             default: false
@@ -565,27 +619,71 @@ async function selectInstalledApplication(allConfigurations) {
 }
 
 // Function to handle interactive prompts
-async function collectConfigInteractively(initialConfig = {}, configurations, dependencies) {
+async function collectConfigInteractively(initialConfig = {}, configurations, dependencies, create = false) {
     console.log(
         chalk.blue("Entering interactive mode...\n"),
     );
 
     try {
-        const abbrev = await input({
-            message: "Enter abbreviation:",
-            default: initialConfig?.pkg?.abbrev || "my app",
-        });
+        let abbrev;
+        if (create) {
+            let isAbbrevValid = false;
+            
+            while (!isAbbrevValid) {
+                abbrev = await input({
+                    message: "Enter abbreviation:",
+                    default: initialConfig?.pkg?.abbrev || "my app",
+                });
+                
+                if (create) {
+                    // Check if abbreviation already exists in configurations
+                    const existingConfigByAbbrev = configurations.find(item => item.type === "installed" && item.config.pkg.abbrev === abbrev);
+                    if (existingConfigByAbbrev) {
+                        console.log(chalk.red(`❌ Abbreviation "${abbrev}" already exists in configuration "${existingConfigByAbbrev.config.label}"`));
+                        console.log(chalk.yellow("Please enter a different abbreviation.\n"));
+                    } else {
+                        isAbbrevValid = true;
+                    }
+                } else {
+                    isAbbrevValid = true;
+                }
+            }
+        } else {
+            abbrev = initialConfig?.pkg?.abbrev;
+        }
 
         const label = await input({
-            message: "Enter label:",
+            message: "Enter descriptive label:",
             default: initialConfig?.label || abbrev,
         });
 
-        const id = await input({
-            message: "Enter unique identifier (URL):",
-            default: initialConfig?.id || `https://e-editiones.org/apps/${abbrev}`,
-        });
-
+        let id;
+        if (create) {
+            let isIdValid = false;
+            
+            while (!isIdValid) {
+                id = await input({
+                    message: "Enter unique identifier (URL):",
+                    default: initialConfig?.id || `https://e-editiones.org/apps/${abbrev}`,
+                });
+                
+                if (create) {
+                    // Check if ID already exists in configurations
+                    const existingConfigById = configurations.find(item => item.type === "installed" && item.config.id === id);
+                    if (existingConfigById) {
+                        console.log(chalk.red(`❌ ID "${id}" already exists in configuration "${existingConfigById.config.label}"`));
+                        console.log(chalk.yellow("Please enter a different ID.\n"));
+                    } else {
+                        isIdValid = true;
+                    }
+                } else {
+                    isIdValid = true;
+                }
+            }
+        } else {
+            id = initialConfig?.id;
+        }
+        
         const blueprintOptions = configurations
             .filter((item) => item.type === "profile" && item.config.type === "blueprint")
             .sort((a, b) => a.config.label.localeCompare(b.config.label))
@@ -743,7 +841,7 @@ async function update(config, options, client, resolve = []) {
 
     // 2. Use the cookie for the generator request
     const generatorResponse = await client.post(
-        `/api/generator?overwrite=${options.reinstall ? "all" : (options.force ? "force" : "default")}`,
+        `/api/generator?overwrite=${options.reinstall ? "reinstall" : (options.all ? "all" : "quick")}`,
         requestBody
     );
 
