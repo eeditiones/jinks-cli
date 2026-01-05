@@ -1,6 +1,6 @@
 # @teipublisher/jinks-cli
 
-A command-line interface tool for managing TEI Publisher applications with (https://github.com/eeditiones/jinks)[Jinks].
+A command-line interface tool for managing TEI Publisher applications with [Jinks](https://github.com/eeditiones/jinks).
 
 ## Installation
 
@@ -34,6 +34,7 @@ Options:
 - `-p, --password <password>` - Password (default: simple)
 - `-e, --edit` - Use text editor rather than interactive mode
 - `-q, --quiet` - Do not print banner
+- `-c, --config <file>` - Use the given configuration file rather than interactive mode to create the application.
 
 #### `jinks edit [abbrev]`
 Edit an existing application configuration. If no application is provided, you'll be prompted to select from installed applications.
