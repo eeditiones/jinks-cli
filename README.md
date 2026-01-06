@@ -12,6 +12,23 @@ npm install -g @teipublisher/jinks-cli
 
 After installation, you can use the `jinks` command from anywhere in your terminal.
 
+### General Options
+
+#### `jinks -h` or `jinks --help`
+Display help information for the jinks CLI tool or for a specific command.
+
+```bash
+jinks -h
+jinks create --help
+```
+
+#### `jinks -v` or `jinks --version`
+Display the version number of the jinks CLI tool.
+
+```bash
+jinks -v
+```
+
 ### Commands
 
 #### `jinks list`
