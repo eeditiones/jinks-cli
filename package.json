@@ -1,6 +1,6 @@
 {
   "name": "@teipublisher/jinks-cli",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A command-line interface tool for managing TEI Publisher applications with Jinks",
   "main": "index.js",
   "type": "module",

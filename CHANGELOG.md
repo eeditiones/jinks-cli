@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/eeditiones/jinks-cli/compare/v2.0.0...v2.0.1) (2026-01-07)
+
+
+### Bug Fixes
+
+* some actions (reindex, download) now run on jinks itself; if response is application/zip, save it to directory ([cac7219](https://github.com/eeditiones/jinks-cli/commit/cac721917417f8cd5077eddc9816576b25dbd545))
+
 # [2.0.0](https://github.com/eeditiones/jinks-cli/compare/v1.2.0...v2.0.0) (2026-01-07)
 
 
