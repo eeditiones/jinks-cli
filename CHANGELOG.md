@@ -1,3 +1,16 @@
+# [2.0.0](https://github.com/eeditiones/jinks-cli/compare/v1.2.0...v2.0.0) (2026-01-07)
+
+
+* chore!: upgrade dependencies requiring Node.js 20+ ([a04682f](https://github.com/eeditiones/jinks-cli/commit/a04682fd91e25a04804e743cb9b2806f0ff72a8e))
+
+
+### BREAKING CHANGES
+
+* Minimum Node.js version is now 20.0.0
+
+Upgraded @inquirer/prompts (8.1.0), ora (9.0.0), and
+terminal-link (5.0.0). All require Node.js 20+.
+
 # [1.2.0](https://github.com/eeditiones/jinks-cli/compare/v1.1.0...v1.2.0) (2026-01-07)
 
 
