@@ -203,6 +203,7 @@ program
     .argument("[action]", "Name of the action to run, e.g. 'reindex'")
     .summary("Run an action on an installed application")
     .option("-U, --update", "Perform an update of the application before running the action")
+    .option("-o, --output <file>", "Save the output to the given directory")
     .addOption(serverOption)
     .addOption(userOption)
     .addOption(passwordOption)
@@ -217,7 +218,7 @@ program
             if (!action) {
                 if (config.actions && config.actions.length > 0) {
                     const actionChoices = config.actions.map(actionItem => ({
-                        name: actionItem.description,
+                        name: `${actionItem.name}: ${actionItem.description}`,
                         value: actionItem.name
                     }));
 
@@ -239,18 +240,78 @@ program
                 await loginUser(command.client, options);
 
                 // Execute the action
-                const actionResponse = await command.client.post(`../${config.config.pkg.abbrev}/api/actions/${action}`);
+                const actionConfig = config.actions.find(actionItem => actionItem.name === action);
+                // if the action is configured to run on a different app (e.g. jinks itself), use the app name, otherwise use the current app name
+                const appName = actionConfig.app || config.config.pkg.abbrev;
+                const params = new URLSearchParams();
+                // all actions receive the current collection as root parameter
+                params.append('root', `/db/apps/${config.config.pkg.abbrev}`);
+                
+                const actionResponse = await command.client.post(`../${appName}/api/actions/${action}`, params, {
+                    responseType: 'arraybuffer'
+                });
 
                 if (actionResponse.status !== 200) {
                     spinner.fail("Action failed with error: " + actionResponse.status);
-                    console.error(actionResponse.data);
+                    const errorData = actionResponse.data instanceof ArrayBuffer 
+                        ? Buffer.from(actionResponse.data).toString('utf-8')
+                        : actionResponse.data;
+                    console.error(errorData);
                     return;
                 }
                 spinner.stop();
 
-                const output = actionResponse.data;
+                // Check if response should be saved as a file
+                const contentDisposition = actionResponse.headers['content-disposition'] || actionResponse.headers['Content-Disposition'];
+                const contentType = actionResponse.headers['content-type'] || actionResponse.headers['Content-Type'];
+                
+                if (contentDisposition && contentType) {
+                    // Check if content-type matches (handle both "media-type=application/zip" and "application/zip")
+                    const contentTypeMatch = contentType.includes('application/zip') || contentType.includes('media-type=application/zip');
+                    
+                    if (contentTypeMatch) {
+                        // Extract filename from content-disposition header
+                        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                        if (filenameMatch) {
+                            let filename = filenameMatch[1].replace(/['"]/g, ''); // Remove quotes
+                            
+                            // Determine output directory: use -o option if provided, otherwise current directory
+                            const outputDir = options.output ? path.resolve(options.output) : process.cwd();
+                            
+                            // Ensure the directory exists
+                            if (!fs.existsSync(outputDir)) {
+                                fs.mkdirSync(outputDir, { recursive: true });
+                            }
+                            
+                            // Save file to the specified or current directory
+                            const filePath = path.join(outputDir, filename);
+                            fs.writeFileSync(filePath, actionResponse.data);
+                            console.log(chalk.green(`File saved: ${filePath}`));
+                            return;
+                        }
+                    }
+                }
 
-                if (output && output.length > 0) {
+                // Convert arraybuffer back to text for JSON responses
+                let output;
+                if (actionResponse.data instanceof ArrayBuffer || actionResponse.data instanceof Uint8Array) {
+                    try {
+                        const buffer = Buffer.from(actionResponse.data);
+                        const text = buffer.toString('utf-8');
+                        output = JSON.parse(text);
+                    } catch (e) {
+                        // If parsing fails, it might not be JSON - this shouldn't happen in normal flow
+                        spinner.fail("Failed to parse response as JSON");
+                        const buffer = Buffer.from(actionResponse.data);
+                        console.error("Response data:", buffer.toString('utf-8'));
+                        return;
+                    }
+                } else {
+                    output = actionResponse.data;
+                }
+
+                // Only process if output is an array with expected structure
+                if (Array.isArray(output) && output.length > 0) {
                     // Table output
                     console.log(chalk.blue("Action response:"));
                     const table = new Table({
@@ -260,8 +321,10 @@ program
                     });
 
                     output.forEach((message) => {
-                        let typeColored = chalk.blue(message.type.padEnd(15));
-                        table.push([typeColored, message.message]);
+                        if (message && message.type && message.message) {
+                            let typeColored = chalk.blue(message.type.padEnd(15));
+                            table.push([typeColored, message.message]);
+                        }
                     });
                     console.log(table.toString());
                 }
