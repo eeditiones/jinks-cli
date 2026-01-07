@@ -43,7 +43,7 @@
     "dotenv": "^17.2.3",
     "figlet": "^1.9.4",
     "ora": "^8.2.0",
-    "terminal-link": "^3.0.0",
+    "terminal-link": "^5.0.0",
     "tough-cookie": "^6.0.0"
   },
   "devDependencies": {
