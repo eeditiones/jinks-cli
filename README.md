@@ -218,7 +218,7 @@ When creating profiles, you can choose from three types:
 
 ## Requirements
 
-- Node.js 18.0.0 or higher
+- Node.js 20.0.0 or higher
 - A running eXist-db instance with Jinks installed
 
 ## License
