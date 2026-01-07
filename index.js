@@ -13,6 +13,13 @@ import ora from "ora";
 import figlet from "figlet";
 import dotenv from "dotenv";
 import terminalLink from "terminal-link";
+import { fileURLToPath } from "url";
+
+// Get the version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8"));
+const VERSION = packageJson.version;
 
 // Load environment variables from .env file
 // Temporarily suppress console output to avoid dotenv messages
@@ -45,6 +52,9 @@ process.on('SIGINT', () => {
 });
 
 const program = new Command();
+
+// Set up version option
+program.version(VERSION, "-v, --version", "Display the version number");
 
 // Shared options for all commands
 const serverOption = new Option("-s, --server <address>", "Server address").default(process.env.JINKS_SERVER || "http://localhost:8080/exist/apps/jinks");
@@ -304,7 +314,15 @@ program.command("edit-profile")
         }
     });
 
-program.parse();
+// Only parse command line arguments if this file is run directly (not imported)
+// Check if this module is the main module being executed
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+                      process.argv[1]?.endsWith('index.js') ||
+                      process.argv[1]?.endsWith('jinks');
+
+if (isMainModule) {
+    program.parse();
+}
 
 function printBanner(options) {
     if (!options.quiet) {
@@ -359,7 +377,11 @@ function loadConfigFromFile(filePath) {
         return JSON.parse(fileContent);
     } catch (error) {
         console.error("Error reading or parsing JSON file:", error.message);
-        process.exit(1);
+        // In CLI context, exit; in test context, throw
+        if (process.env.NODE_ENV !== 'test') {
+            process.exit(1);
+        }
+        throw new Error(`Error reading or parsing JSON file: ${error.message}`);
     }
 }
 
@@ -937,3 +959,11 @@ async function resolveConflicts(conflicts, config, options, client) {
     console.log(chalk.blue("Re-running ..."));
     update(config, options, client, resolved);
 }
+
+// Export functions for testing
+export {
+    loadConfigFromFile,
+    showApplicationLink,
+    listInstalledApplications,
+    printBanner
+};
