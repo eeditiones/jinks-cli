@@ -1,3 +1,11 @@
+## [2.0.2](https://github.com/eeditiones/jinks-cli/compare/v2.0.1...v2.0.2) (2026-01-10)
+
+
+### Bug Fixes
+
+* create-profile generates invalid expath-pkg.xml ([db8b924](https://github.com/eeditiones/jinks-cli/commit/db8b9248e95f4ede0e53bfcf22b6c37f1fae4eaf))
+* handle transitive dependencies: docs -> playground -> upload ([89a82b1](https://github.com/eeditiones/jinks-cli/commit/89a82b17f590b80b3e03d6a1afacc47704ea7836))
+
 ## [2.0.1](https://github.com/eeditiones/jinks-cli/compare/v2.0.0...v2.0.1) (2026-01-07)
 
 
