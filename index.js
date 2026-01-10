@@ -607,7 +607,7 @@ async function createOrEditProfile(config, outDir, configurations) {
     });
     
     try {
-        const newConfig = await collectConfigInteractively(config, configurations, config?.depends);
+        const newConfig = await collectConfigInteractively(config, configurations, config?.depends, true);
         const depends = newConfig.extends;
         delete newConfig.extends;
         const profileConfig = {
@@ -628,7 +628,7 @@ async function createOrEditProfile(config, outDir, configurations) {
 
             const expathPath = path.join(outDir, 'expath-pkg.xml');
             const expath = `<?xml version="1.0" encoding="UTF-8" ?>
-<package xmlns="http://expath.org/ns/pkg" name="${profileConfig.id}" abbrev="${profileConfig.pkg.abbrev}" version="${profileConfig.version}" spec="1.0">
+<package xmlns="http://expath.org/ns/pkg" name="https://e-editiones.org/tei-publisher/profiles/${profileConfig.pkg.abbrev}" abbrev="${profileConfig.pkg.abbrev}" version="${profileConfig.version}" spec="1.0">
     <title>${profileConfig.label}</title>
     <dependency processor="http://exist-db.org" semver-min="6.2.0" />
     <dependency package="http://e-editiones.org/roaster" semver="1"/>
