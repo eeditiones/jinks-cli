@@ -811,35 +811,80 @@ async function collectConfigInteractively(initialConfig = {}, configurations, de
             });
         }
 
-        // Check for missing dependencies
+        // Check for missing dependencies (iteratively following the dependency chain)
         const baseProfiles = ["base10", "theme-base10"];
         const currentExtends = [...baseProfiles, ...selectedProfiles];
         const missingDependencies = [];
         const missingProfiles = [];
-
-        for (const profileName of selectedProfiles) {
-            const profileConfig = configurations.find(config => config.profile === profileName);
-            if (profileConfig?.config?.depends) {
+        
+        // Helper function to collect all dependencies iteratively (breadth-first)
+        const collectAllDependencies = (startProfiles) => {
+            const allDeps = new Map(); // Maps dependency -> { profile, dependency, ... }
+            const toProcess = [...startProfiles];
+            const processed = new Set();
+            
+            while (toProcess.length > 0) {
+                const profileName = toProcess.shift();
+                
+                // Skip if already processed (prevents infinite loops from circular dependencies)
+                if (processed.has(profileName)) {
+                    continue;
+                }
+                processed.add(profileName);
+                
+                const profileConfig = configurations.find(config => config.profile === profileName);
+                if (!profileConfig?.config?.depends) {
+                    continue;
+                }
+                
                 for (const dependency of profileConfig.config.depends) {
-                    if (!currentExtends.includes(dependency)) {
-                        // Check if the dependency profile exists
-                        const dependencyConfig = configurations.find(config => config.profile === dependency);
-                        if (dependencyConfig) {
-                            missingDependencies.push({
-                                profile: profileName,
-                                dependency: dependency,
-                                label: profileConfig.config.label,
-                                dependencyLabel: dependencyConfig.config.label
-                            });
-                        } else {
-                            missingProfiles.push({
-                                profile: profileName,
-                                dependency: dependency,
-                                label: profileConfig.config.label
-                            });
-                        }
+                    // Track this dependency relationship
+                    if (!allDeps.has(dependency)) {
+                        allDeps.set(dependency, {
+                            profile: profileName,
+                            dependency: dependency
+                        });
+                    }
+                    
+                    // Add dependency to processing queue to check its dependencies
+                    if (!processed.has(dependency)) {
+                        toProcess.push(dependency);
                     }
                 }
+            }
+            
+            return Array.from(allDeps.values());
+        };
+        
+        // Collect all dependencies for all selected profiles
+        const allDependencyInfo = collectAllDependencies(selectedProfiles);
+        
+        // Process collected dependencies and check if they're missing
+        for (const depInfo of allDependencyInfo) {
+            const dependency = depInfo.dependency;
+            
+            // Skip if already in currentExtends
+            if (currentExtends.includes(dependency)) {
+                continue;
+            }
+            
+            // Check if the dependency profile exists
+            const dependencyConfig = configurations.find(config => config.profile === dependency);
+            const profileConfig = configurations.find(config => config.profile === depInfo.profile);
+            
+            if (dependencyConfig) {
+                missingDependencies.push({
+                    profile: depInfo.profile,
+                    dependency: dependency,
+                    label: profileConfig?.config?.label || depInfo.profile,
+                    dependencyLabel: dependencyConfig.config.label
+                });
+            } else {
+                missingProfiles.push({
+                    profile: depInfo.profile,
+                    dependency: dependency,
+                    label: profileConfig?.config?.label || depInfo.profile
+                });
             }
         }
 
