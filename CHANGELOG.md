@@ -1,3 +1,11 @@
+# [2.1.0](https://github.com/eeditiones/jinks-cli/compare/v2.0.2...v2.1.0) (2026-04-28)
+
+
+### Features
+
+* add sync option to update command: synchronizes updated files to local dir ([605bda5](https://github.com/eeditiones/jinks-cli/commit/605bda5413a01319d2f64be1e0497d5b7302e7f6))
+* report invalid config.json, either in an app itself or one of its dependencies ([be2ac8b](https://github.com/eeditiones/jinks-cli/commit/be2ac8bfce8057f630b325c1409acd90a3b034cf))
+
 ## [2.0.2](https://github.com/eeditiones/jinks-cli/compare/v2.0.1...v2.0.2) (2026-01-10)
 
 
