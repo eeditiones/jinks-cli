@@ -73,7 +73,12 @@ program.hook('preAction', async (thisCommand, actionCommand) => {
     if (options.server) {
         // Store client and configurations in the command context for use in actions
         actionCommand.client = initClient(options);
-        actionCommand.allConfigurations = await fetchAvailableConfigurations(actionCommand.client);
+        const { configurations, invalidConfigurations } = await fetchAvailableConfigurations(
+            actionCommand.client,
+            actionCommand.name(),
+        );
+        actionCommand.allConfigurations = configurations;
+        actionCommand.invalidConfigurations = invalidConfigurations;
     }
 });
 
@@ -83,7 +88,11 @@ program.command("list")
     .addOption(serverOption)
     .action(async (options, command) => {
         try {
-            listInstalledApplications(command.allConfigurations, options.server);
+            listInstalledApplications(
+                command.allConfigurations,
+                options.server,
+                command.invalidConfigurations ?? [],
+            );
         } catch (error) {
             console.error(error);
         }
@@ -135,7 +144,11 @@ program
         try {
             let config;
             if (abbrev) {
-                config = await loadConfigFromApplication(abbrev, command.allConfigurations);
+                config = await loadConfigFromApplication(
+                    abbrev,
+                    command.allConfigurations,
+                    command.invalidConfigurations ?? [],
+                );
             } else {
                 config = await selectInstalledApplication(command.allConfigurations);
             }
@@ -165,7 +178,11 @@ program
         try {
             let config;
             if (abbrev) {
-                config = await loadConfigFromApplication(abbrev, command.allConfigurations);
+                config = await loadConfigFromApplication(
+                    abbrev,
+                    command.allConfigurations,
+                    command.invalidConfigurations ?? [],
+                );
             } else {
                 config = await selectInstalledApplication(command.allConfigurations);
             }
@@ -185,7 +202,11 @@ program
     .addOption(passwordOption)
     .action(async (abbrev, options, command) => {
         try {
-            let config = await loadConfigFromApplication(abbrev, command.allConfigurations);
+            let config = await loadConfigFromApplication(
+                abbrev,
+                command.allConfigurations,
+                command.invalidConfigurations ?? [],
+            );
             if (options.expand) {
                 config = await expandConfig(config.config, command.client);
             } else {
@@ -211,7 +232,11 @@ program
         try {
             let config;
             if (abbrev) {
-                config = await loadConfigFromApplication(abbrev, command.allConfigurations);
+                config = await loadConfigFromApplication(
+                    abbrev,
+                    command.allConfigurations,
+                    command.invalidConfigurations ?? [],
+                );
             } else {
                 config = await selectInstalledApplication(command.allConfigurations);
             }
@@ -420,13 +445,91 @@ async function loginUser(client, options) {
     }
 }
 
+function isInvalidConfigurationEntry(item) {
+    return Boolean(item && item.type === "invalid-config");
+}
+
+function splitConfigurationsResponse(data) {
+    if (!Array.isArray(data)) {
+        const kind = data === null || data === undefined ? String(data) : typeof data;
+        return {
+            valid: [],
+            invalid: [],
+            parseError: `Expected a JSON array from /api/configurations, received ${kind}.`,
+        };
+    }
+    const valid = [];
+    const invalid = [];
+    for (const item of data) {
+        if (isInvalidConfigurationEntry(item)) {
+            invalid.push(item);
+        } else {
+            valid.push(item);
+        }
+    }
+    return { valid, invalid, parseError: null };
+}
+
+function reportInvalidConfigurations(entries) {
+    if (!entries.length) {
+        return;
+    }
+    console.error(
+        chalk.yellow(
+            "\nSome applications or profiles on the server could not be loaded (invalid JSON or dependency error):\n",
+        ),
+    );
+    for (const item of entries) {
+        const slug = item.profile ?? "?";
+        console.error(
+            chalk.red(`  ${slug}`) +
+                chalk.dim(` — ${item.title ?? "invalid configuration"}`),
+        );
+        if (item.description) {
+            console.error(chalk.dim(`    ${item.description}`));
+        }
+        if (item.error?.message) {
+            console.error(chalk.dim(`    ${item.error.message}`));
+        }
+        if (item.error?.path) {
+            console.error(chalk.dim(`    ${item.error.path}`));
+        }
+    }
+    console.error("");
+}
+
 // Helper function to fetch available configurations
-async function fetchAvailableConfigurations(client) {
+async function fetchAvailableConfigurations(client, commandName = "") {
     const spinner = ora("Fetching available configurations...").start();
     try {
         const configResponse = await client.get("/api/configurations");
         spinner.stop();
-        return configResponse.data;
+
+        if (configResponse.status !== 200) {
+            console.error(
+                chalk.red(
+                    `Could not fetch configurations: HTTP ${configResponse.status}`,
+                ),
+            );
+            process.exit(1);
+        }
+
+        const { valid, invalid, parseError } = splitConfigurationsResponse(
+            configResponse.data,
+        );
+        if (parseError) {
+            console.error(chalk.red(parseError));
+            process.exit(1);
+        }
+
+        if (commandName !== "list") {
+            reportInvalidConfigurations(invalid);
+        }
+
+        return {
+            configurations: valid,
+            invalidConfigurations: invalid,
+        };
     } catch (error) {
         spinner.fail(`Could not fetch configurations: ${error.message}\n`);
         process.exit(1);
@@ -458,27 +561,47 @@ function showApplicationLink(config, serverUrl, action = "created") {
 }
 
 // Helper function to list installed applications
-function listInstalledApplications(allConfigurations, serverUrl) {
+function listInstalledApplications(
+    allConfigurations,
+    serverUrl,
+    invalidConfigurations = [],
+) {
     console.log(chalk.blue('Installed applications:\n'));
-    const configs = allConfigurations
-        .filter(
-            (item) => item.type === "installed",
-        );
-    
+    const configs = allConfigurations.filter((item) => item.type === "installed");
+
     if (configs.length === 0) {
         console.log(chalk.yellow('No applications found.'));
-        return;
+    } else {
+        const baseUrl = serverUrl.replace('/jinks', '');
+
+        configs.forEach((config) => {
+            const abbrev = config.config.pkg.abbrev;
+            const appUrl = `${baseUrl}/${abbrev}`;
+            const link = terminalLink(abbrev, appUrl);
+            console.log(`${link}`);
+        });
     }
-    
-    // Compute application URLs by replacing /jinks with the app's abbrev
-    const baseUrl = serverUrl.replace('/jinks', '');
-    
-    configs.forEach((config) => {
-        const abbrev = config.config.pkg.abbrev;
-        const appUrl = `${baseUrl}/${abbrev}`;
-        const link = terminalLink(abbrev, appUrl);
-        console.log(`${link}`);
-    });
+
+    if (invalidConfigurations.length > 0) {
+        console.log(
+            chalk.yellow(
+                "\nInstalled applications or bundled profiles that could not be loaded:\n",
+            ),
+        );
+        for (const item of invalidConfigurations) {
+            const slug = item.profile ?? "?";
+            console.log(chalk.red(`  ${slug}`));
+            if (item.title) {
+                console.log(chalk.dim(`    ${item.title}`));
+            }
+            if (item.error?.message) {
+                console.log(chalk.dim(`    ${item.error.message}`));
+            }
+            if (item.error?.path) {
+                console.log(chalk.dim(`    ${item.error.path}`));
+            }
+        }
+    }
 }
 
 async function expandConfig(config, client) {
@@ -494,7 +617,11 @@ async function expandConfig(config, client) {
 }
 
 // Helper function to load configuration from application
-async function loadConfigFromApplication(appOption, allConfigurations) {
+async function loadConfigFromApplication(
+    appOption,
+    allConfigurations,
+    invalidConfigurations = [],
+) {
     if (!appOption) {
         try {
             return await selectInstalledApplication(allConfigurations);
@@ -508,9 +635,31 @@ async function loadConfigFromApplication(appOption, allConfigurations) {
             }
         }
     } else {
-        // Load configuration from existing application
+        const broken = invalidConfigurations.find(
+            (item) => item.profile === appOption,
+        );
+        if (broken) {
+            console.error(
+                chalk.red(
+                    `"${appOption}" is present on the server but its configuration could not be loaded.`,
+                ),
+            );
+            if (broken.title) {
+                console.error(chalk.dim(broken.title));
+            }
+            if (broken.error?.message) {
+                console.error(chalk.dim(broken.error.message));
+            }
+            if (broken.error?.path) {
+                console.error(chalk.dim(broken.error.path));
+            }
+            process.exit(1);
+        }
+
         const config = allConfigurations.find(
-            (item) => item.config.pkg.abbrev === appOption,
+            (item) =>
+                (item.type === "installed" || item.type === "profile") &&
+                item.config?.pkg?.abbrev === appOption,
         );
         if (!config) {
             console.error(chalk.red(`Application ${appOption} not found.`));
@@ -1073,5 +1222,6 @@ export {
     loadConfigFromFile,
     showApplicationLink,
     listInstalledApplications,
-    printBanner
+    printBanner,
+    splitConfigurationsResponse,
 };

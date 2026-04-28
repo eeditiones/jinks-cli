@@ -127,5 +127,36 @@ describe('listInstalledApplications', () => {
     assert.ok(!allCalls.includes('profile1'))
     assert.ok(!allCalls.includes('blueprint1'))
   })
+
+  test('should list invalid-configuration entries when provided', () => {
+    consoleLogCalls = []
+
+    const allConfigurations = [
+      {
+        type: 'installed',
+        config: {
+          pkg: { abbrev: 'goodapp' },
+          label: 'Good App',
+        },
+      },
+    ]
+    const invalidConfigurations = [
+      {
+        type: 'invalid-config',
+        profile: 'brokenapp',
+        title: 'Invalid config.json',
+        error: { path: '/db/.../brokenapp/config.json', message: 'Unexpected token' },
+      },
+    ]
+    const serverUrl = 'http://localhost:8080/exist/apps/jinks'
+
+    listInstalledApplications(allConfigurations, serverUrl, invalidConfigurations)
+
+    const allText = consoleLogCalls.map((call) => String(call[0])).join('\n')
+    assert.ok(allText.includes('goodapp'))
+    assert.ok(allText.includes('could not be loaded'))
+    assert.ok(allText.includes('brokenapp'))
+    assert.ok(allText.includes('Unexpected token'))
+  })
 })
 
