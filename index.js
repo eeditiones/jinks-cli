@@ -64,6 +64,7 @@ const editOption = new Option("-e, --edit", "Use text editor rather than interac
 const reinstallOption = new Option("-r, --reinstall", "Fully reinstall application, overwriting existing files.");
 const forceOption = new Option("-a, --all", "Ignore last modified date and check every file for changes.");
 const quietOption = new Option("-q, --quiet", "Do not print banner.");
+const syncOption = new Option("--sync", "Sync updated files to the local directory.");
 
 // Hook to run before any command action
 program.hook('preAction', async (thisCommand, actionCommand) => {
@@ -173,6 +174,7 @@ program
     .addOption(quietOption)
     .addOption(reinstallOption)
     .addOption(forceOption)
+    .addOption(syncOption)
     .action(async (abbrev, options, command) => {
         printBanner(options);
         try {
@@ -1165,6 +1167,40 @@ async function update(config, options, client, resolve = []) {
             table.push([typeColored, message.path || "", source]);
         });
         console.log(table.toString());
+    }
+
+    if (options.sync) {
+        const toSync = output.messages.filter(m => m.type === "update");
+        for (const fixedPath of ['.jinks.json', 'context.json']) {
+            if (!toSync.some(m => m.path === fixedPath)) {
+                toSync.push({ path: fixedPath });
+            }
+        }
+        if (toSync.length > 0) {
+            const syncSpinner = ora(`Syncing ${toSync.length} file(s)...`).start();
+            let syncErrors = 0;
+            for (const message of toSync) {
+                const dbPath = `/db/apps/${config.pkg.abbrev}/${message.path}`;
+                try {
+                    const sourceResponse = await client.get(`/api/source`, {
+                        params: { path: dbPath },
+                        responseType: 'arraybuffer'
+                    });
+                    const localPath = path.join(process.cwd(), message.path);
+                    fs.mkdirSync(path.dirname(localPath), { recursive: true });
+                    fs.writeFileSync(localPath, sourceResponse.data);
+                } catch (err) {
+                    syncErrors++;
+                    syncSpinner.warn(`Failed to sync: ${message.path}`);
+                    syncSpinner.start();
+                }
+            }
+            if (syncErrors === 0) {
+                syncSpinner.succeed(`Synced ${toSync.length} file(s) to ${process.cwd()}`);
+            } else {
+                syncSpinner.fail(`Sync completed with ${syncErrors} error(s)`);
+            }
+        }
     }
 
     if (options.reinstall || (output.nextStep && output.nextStep.action === "DEPLOY")) {
