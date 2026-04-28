@@ -67,7 +67,7 @@ Options:
 - `-e, --edit` - Use text editor rather than interactive mode
 - `-q, --quiet` - Do not print banner
 - `-r, --reinstall` - Fully reinstall application, overwriting existing files
-- `-f, --force` - Ignore last modified date and check every file for changes
+- `-a, --all` - Ignore last modified date and check every file for changes
 
 #### `jinks update [abbrev]`
 Update an existing application. If no application is provided, you'll be prompted to select from installed applications.
@@ -82,7 +82,8 @@ Options:
 - `-p, --password <password>` - Password
 - `-q, --quiet` - Do not print banner
 - `-r, --reinstall` - Fully reinstall application, overwriting existing files
-- `-f, --force` - Ignore last modified date and check every file for changes
+- `-a, --all` - Ignore last modified date and check every file for changes
+- `--sync` - Sync updated files to the local directory (also always syncs `.jinks.json` and `context.json`)
 
 #### `jinks config [abbrev]`
 Get configuration for an application.
@@ -161,7 +162,12 @@ jinks edit my-tei-app
 
 ### Update an application with force flag
 ```bash
-jinks update my-tei-app --force
+jinks update my-tei-app --all
+```
+
+### Update and sync changed files to the local directory
+```bash
+jinks update my-tei-app --sync
 ```
 
 ### Run a reindex action (with interactive action selection)
