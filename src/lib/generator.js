@@ -110,7 +110,9 @@ export async function update(config, options, client, resolve = []) {
     }
 
     const conflicts = output.messages.filter((message) => message.type === 'conflict');
-    resolveConflicts(conflicts, config, options, client);
+    if (!options.quiet) {
+        resolveConflicts(conflicts, config, options, client);
+    }
 }
 
 async function resolveConflicts(conflicts, config, options, client) {
