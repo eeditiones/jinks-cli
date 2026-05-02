@@ -1,0 +1,20 @@
+{
+    "overwrite": "default",
+    "pkg": {
+        "abbrev": "tp10"
+    },
+    "label": "TEI Publisher",
+    "id": "https://e-editiones.org/apps/tp10",
+    "extends": [
+        "base10",
+        "theme-base10",
+        "markdown",
+        "demo-data",
+        "docbook",
+        "jats",
+        "iiif",
+        "docs",
+        "upload",
+        "docx"
+    ]
+}
