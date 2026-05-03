@@ -16,6 +16,7 @@ import { registerConfig } from './src/commands/config.js';
 import { registerRun } from './src/commands/run.js';
 import { registerCreateProfile } from './src/commands/create-profile.js';
 import { registerEditProfile } from './src/commands/edit-profile.js';
+import { registerWatch } from './src/commands/watch.js';
 
 export { loadConfigFromFile } from './src/lib/config.js';
 export { showApplicationLink, listInstalledApplications, printBanner } from './src/lib/ui.js';
@@ -40,6 +41,7 @@ const program = new Command();
 program.version(VERSION, '-v, --version', 'Display the version number');
 
 program.hook('preAction', async (thisCommand, actionCommand) => {
+    if (actionCommand.name() === 'watch') return;
     const options = actionCommand.opts();
     if (options.server) {
         actionCommand.client = initClient(options);
@@ -60,6 +62,7 @@ registerConfig(program);
 registerRun(program);
 registerCreateProfile(program);
 registerEditProfile(program);
+registerWatch(program);
 
 const isMainModule = import.meta.url === `file://${process.argv[1]}` ||
     process.argv[1]?.endsWith('index.js') ||

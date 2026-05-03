@@ -138,6 +138,32 @@ Options:
 - `-p, --password <password>` - Password
 - `-q, --quiet` - Do not print banner
 
+#### `jinks watch [dir]`
+Watch a local directory for file changes and automatically synchronize them to the corresponding eXist-db collection. Reads the target collection and credentials from `repo.xml` in the watched directory.
+
+```bash
+jinks watch
+jinks watch ./my-app
+```
+
+The target collection (`/db/apps/<target>`) and database credentials are taken from the `<target>` and `<permissions>` elements in `repo.xml`. The `-u` and `-p` options override the credentials from `repo.xml` when needed.
+
+Synchronized events:
+
+| Event | Action |
+|---|---|
+| File added or changed | Upload to database |
+| File deleted | Remove from database |
+| Directory added | Create collection in database |
+| Directory deleted | Remove collection from database |
+
+The following paths are never synchronized: `.git`, `build`, `node_modules`, `*.xar`, `.DS_Store`.
+
+Options:
+- `-s, --server <address>` - Server address (default: http://localhost:8080/exist/apps/jinks)
+- `-u, --user <username>` - Override the username from `repo.xml`
+- `-p, --password <password>` - Override the password from `repo.xml`
+
 ## Examples
 
 ### Create a new application interactively
@@ -188,6 +214,16 @@ jinks create-profile my-feature --out ./my-feature
 ### Edit an existing profile
 ```bash
 jinks edit-profile ./my-feature
+```
+
+### Watch the current directory and sync changes to the database
+```bash
+jinks watch
+```
+
+### Watch a specific application directory
+```bash
+jinks watch ./my-tei-app
 ```
 
 ### Connect to a different server
