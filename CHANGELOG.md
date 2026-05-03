@@ -1,3 +1,15 @@
+# [2.2.0](https://github.com/eeditiones/jinks-cli/compare/v2.1.0...v2.2.0) (2026-05-03)
+
+
+### Bug Fixes
+
+* if -q|--quite is passed, do not ask if conflicts should be resolved ([b2f910c](https://github.com/eeditiones/jinks-cli/commit/b2f910c781261834e03ee76fcde456497ef67ec4))
+
+
+### Features
+
+* add a watch command ([457e71a](https://github.com/eeditiones/jinks-cli/commit/457e71a4b9f02c7f8f67e48990a76efb4f7e0b37))
+
 # [2.1.0](https://github.com/eeditiones/jinks-cli/compare/v2.0.2...v2.1.0) (2026-04-28)
 
 
