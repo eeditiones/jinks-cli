@@ -3,9 +3,8 @@ import path from 'path';
 import chalk from 'chalk';
 import { watch } from 'chokidar';
 import { initClient, loginUser } from '../lib/client.js';
+import { createWatchIgnorePredicate, resolveWatchIgnoreGlobs } from '../lib/sync-ignore.js';
 import { serverOption } from '../options.js';
-
-const IGNORED = ['.git', 'build', 'node_modules', /\.xar$/, /\.DS_Store$/];
 
 function parseRepoXml(dir) {
     const repoXmlPath = path.join(dir, 'repo.xml');
@@ -81,7 +80,9 @@ export function registerWatch(program) {
     program.command('watch')
         .argument('[dir]', 'Directory to watch (defaults to current working directory)')
         .summary('Watch a directory and sync changes to the database')
-        .description('Watch the working directory for file changes and synchronize them to the eXist-db target collection. Reads target collection and credentials from repo.xml.')
+        .description(
+            'Watch the working directory for file changes and synchronize them to the eXist-db target collection. Reads target collection and credentials from repo.xml. Uses sync.ignore globs from .existdb.json when present (always includes .git/**), otherwise built-in defaults.',
+        )
         .addOption(serverOption())
         .option('-u, --user <username>', 'Override the username from repo.xml')
         .option('-p, --password <password>', 'Override the password from repo.xml')
@@ -102,8 +103,14 @@ export function registerWatch(program) {
             };
             const targetCollection = `/db/apps/${repoInfo.target}`;
 
+            const { fromConfig, globs: ignoreGlobs } = resolveWatchIgnoreGlobs(watchDir);
+
             console.log(chalk.blue(`Syncing ${chalk.bold(watchDir)} → ${chalk.bold(targetCollection)}`));
-            console.log(chalk.dim(`Server: ${options.server}  User: ${authOptions.user}\n`));
+            console.log(
+                chalk.dim(
+                    `Server: ${options.server}  User: ${authOptions.user}\n`,
+                ),
+            );
 
             const client = initClient({ server: options.server });
             try {
@@ -113,8 +120,10 @@ export function registerWatch(program) {
                 process.exit(1);
             }
 
+            const isIgnored = createWatchIgnorePredicate(watchDir, ignoreGlobs);
+
             const watcher = watch(watchDir, {
-                ignored: IGNORED,
+                ignored: isIgnored,
                 ignoreInitial: true,
                 persistent: true,
                 awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 },
@@ -124,6 +133,7 @@ export function registerWatch(program) {
 
             watcher
                 .on('add', async (localPath) => {
+                    if (isIgnored(localPath)) return;
                     try {
                         await withReauth(client, authOptions, () => uploadFile(client, localPath, watchDir, targetCollection));
                         console.log(chalk.green('↑') + ' ' + label('add', localPath));
@@ -132,6 +142,7 @@ export function registerWatch(program) {
                     }
                 })
                 .on('change', async (localPath) => {
+                    if (isIgnored(localPath)) return;
                     try {
                         await withReauth(client, authOptions, () => uploadFile(client, localPath, watchDir, targetCollection));
                         console.log(chalk.green('↑') + ' ' + label('change', localPath));
@@ -140,6 +151,7 @@ export function registerWatch(program) {
                     }
                 })
                 .on('unlink', async (localPath) => {
+                    if (isIgnored(localPath)) return;
                     try {
                         await withReauth(client, authOptions, () => deleteResource(client, localPath, watchDir, targetCollection));
                         console.log(chalk.red('✗') + ' ' + label('unlink', localPath));
@@ -149,6 +161,7 @@ export function registerWatch(program) {
                 })
                 .on('addDir', async (localPath) => {
                     if (localPath === watchDir) return; // skip root
+                    if (isIgnored(localPath)) return;
                     try {
                         await withReauth(client, authOptions, () => createCollection(client, localPath, watchDir, targetCollection));
                         console.log(chalk.blue('+ dir') + ' ' + label('addDir', localPath));
@@ -157,6 +170,7 @@ export function registerWatch(program) {
                     }
                 })
                 .on('unlinkDir', async (localPath) => {
+                    if (isIgnored(localPath)) return;
                     try {
                         await withReauth(client, authOptions, () => deleteResource(client, localPath, watchDir, targetCollection));
                         console.log(chalk.red('- dir') + ' ' + label('unlinkDir', localPath));

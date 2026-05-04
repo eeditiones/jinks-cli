@@ -44,6 +44,7 @@
     "dotenv": "^17.2.3",
     "figlet": "^1.9.4",
     "ora": "^9.0.0",
+    "picomatch": "^4.0.4",
     "terminal-link": "^5.0.0",
     "tough-cookie": "^6.0.0"
   },
