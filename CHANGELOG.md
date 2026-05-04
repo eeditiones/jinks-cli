@@ -1,3 +1,10 @@
+## [2.2.1](https://github.com/eeditiones/jinks-cli/compare/v2.2.0...v2.2.1) (2026-05-04)
+
+
+### Bug Fixes
+
+* ignore paths should be globs; respect .existdb.json for sync ([62a1894](https://github.com/eeditiones/jinks-cli/commit/62a189492f4314d1cbb8206c5d6073a6e6abd5e4))
+
 # [2.2.0](https://github.com/eeditiones/jinks-cli/compare/v2.1.0...v2.2.0) (2026-05-03)
 
 
