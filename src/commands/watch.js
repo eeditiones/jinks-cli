@@ -64,7 +64,27 @@ async function createCollection(client, localPath, watchDir, targetCollection) {
     });
 }
 
-async function withReauth(client, authOptions, operation) {
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientRequestError(error) {
+    const status = error?.response?.status;
+    if (typeof status === 'number' && status >= 500) {
+        return true;
+    }
+    const code = error?.code;
+    return code === 'ECONNRESET' ||
+        code === 'ECONNABORTED' ||
+        code === 'ETIMEDOUT' ||
+        code === 'ENOTFOUND' ||
+        code === 'EAI_AGAIN' ||
+        code === 'EPIPE' ||
+        code === 'ENETUNREACH' ||
+        code === 'EHOSTUNREACH';
+}
+
+async function withReconnect(client, authOptions, operation) {
     try {
         return await operation();
     } catch (error) {
@@ -72,8 +92,43 @@ async function withReauth(client, authOptions, operation) {
             await loginUser(client, authOptions);
             return await operation();
         }
+        if (isTransientRequestError(error)) {
+            await sleep(500);
+            return await operation();
+        }
         throw error;
     }
+}
+
+async function checkConnection(client, authOptions) {
+    await withReconnect(client, authOptions, () => client.get('/api/configurations'));
+}
+
+function startConnectionChecks(client, authOptions, intervalSeconds) {
+    const intervalMs = Number(intervalSeconds) * 1000;
+    if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
+        return () => {};
+    }
+    let running = false;
+    let hadError = false;
+    const timer = setInterval(async () => {
+        if (running) return;
+        running = true;
+        try {
+            await checkConnection(client, authOptions);
+            if (hadError) {
+                console.log(chalk.green('✓') + ' ' + chalk.dim('connection restored'));
+                hadError = false;
+            }
+        } catch (error) {
+            hadError = true;
+            console.error(chalk.yellow('!') + ' ' + chalk.dim(`connection check failed — ${error.message}`));
+        } finally {
+            running = false;
+        }
+    }, intervalMs);
+    timer.unref();
+    return () => clearInterval(timer);
 }
 
 export function registerWatch(program) {
@@ -86,6 +141,13 @@ export function registerWatch(program) {
         .addOption(serverOption())
         .option('-u, --user <username>', 'Override the username from repo.xml')
         .option('-p, --password <password>', 'Override the password from repo.xml')
+        .option('--check-interval <seconds>', 'Periodic server connection check interval in seconds (0 disables)', (value) => {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed) || parsed < 0) {
+                throw new Error('check interval must be a non-negative number');
+            }
+            return parsed;
+        }, 60)
         .action(async (dir, options) => {
             const watchDir = path.resolve(dir ?? process.cwd());
 
@@ -103,7 +165,7 @@ export function registerWatch(program) {
             };
             const targetCollection = `/db/apps/${repoInfo.target}`;
 
-            const { fromConfig, globs: ignoreGlobs } = resolveWatchIgnoreGlobs(watchDir);
+            const { globs: ignoreGlobs } = resolveWatchIgnoreGlobs(watchDir);
 
             console.log(chalk.blue(`Syncing ${chalk.bold(watchDir)} → ${chalk.bold(targetCollection)}`));
             console.log(
@@ -119,6 +181,7 @@ export function registerWatch(program) {
                 console.error(chalk.red(`Login failed: ${error.message}`));
                 process.exit(1);
             }
+            const stopConnectionChecks = startConnectionChecks(client, authOptions, options.checkInterval);
 
             const isIgnored = createWatchIgnorePredicate(watchDir, ignoreGlobs);
 
@@ -135,7 +198,7 @@ export function registerWatch(program) {
                 .on('add', async (localPath) => {
                     if (isIgnored(localPath)) return;
                     try {
-                        await withReauth(client, authOptions, () => uploadFile(client, localPath, watchDir, targetCollection));
+                        await withReconnect(client, authOptions, () => uploadFile(client, localPath, watchDir, targetCollection));
                         console.log(chalk.green('↑') + ' ' + label('add', localPath));
                     } catch (error) {
                         console.error(chalk.red('✗') + ' ' + label('add', localPath) + chalk.red(` — ${error.message}`));
@@ -144,7 +207,7 @@ export function registerWatch(program) {
                 .on('change', async (localPath) => {
                     if (isIgnored(localPath)) return;
                     try {
-                        await withReauth(client, authOptions, () => uploadFile(client, localPath, watchDir, targetCollection));
+                        await withReconnect(client, authOptions, () => uploadFile(client, localPath, watchDir, targetCollection));
                         console.log(chalk.green('↑') + ' ' + label('change', localPath));
                     } catch (error) {
                         console.error(chalk.red('✗') + ' ' + label('change', localPath) + chalk.red(` — ${error.message}`));
@@ -153,7 +216,7 @@ export function registerWatch(program) {
                 .on('unlink', async (localPath) => {
                     if (isIgnored(localPath)) return;
                     try {
-                        await withReauth(client, authOptions, () => deleteResource(client, localPath, watchDir, targetCollection));
+                        await withReconnect(client, authOptions, () => deleteResource(client, localPath, watchDir, targetCollection));
                         console.log(chalk.red('✗') + ' ' + label('unlink', localPath));
                     } catch (error) {
                         console.error(chalk.red('✗') + ' ' + label('unlink', localPath) + chalk.red(` — ${error.message}`));
@@ -163,7 +226,7 @@ export function registerWatch(program) {
                     if (localPath === watchDir) return; // skip root
                     if (isIgnored(localPath)) return;
                     try {
-                        await withReauth(client, authOptions, () => createCollection(client, localPath, watchDir, targetCollection));
+                        await withReconnect(client, authOptions, () => createCollection(client, localPath, watchDir, targetCollection));
                         console.log(chalk.blue('+ dir') + ' ' + label('addDir', localPath));
                     } catch (error) {
                         console.error(chalk.red('✗') + ' ' + label('addDir', localPath) + chalk.red(` — ${error.message}`));
@@ -172,7 +235,7 @@ export function registerWatch(program) {
                 .on('unlinkDir', async (localPath) => {
                     if (isIgnored(localPath)) return;
                     try {
-                        await withReauth(client, authOptions, () => deleteResource(client, localPath, watchDir, targetCollection));
+                        await withReconnect(client, authOptions, () => deleteResource(client, localPath, watchDir, targetCollection));
                         console.log(chalk.red('- dir') + ' ' + label('unlinkDir', localPath));
                     } catch (error) {
                         console.error(chalk.red('✗') + ' ' + label('unlinkDir', localPath) + chalk.red(` — ${error.message}`));
@@ -181,6 +244,7 @@ export function registerWatch(program) {
                 .on('error', (error) => {
                     console.error(chalk.red(`Watcher error: ${error.message}`));
                 });
+            watcher.on('close', stopConnectionChecks);
 
             console.log(chalk.blue('Watching for changes. Press Ctrl+C to stop.\n'));
         });
