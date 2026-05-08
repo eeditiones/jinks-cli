@@ -1,3 +1,10 @@
+## [2.2.2](https://github.com/eeditiones/jinks-cli/compare/v2.2.1...v2.2.2) (2026-05-08)
+
+
+### Bug Fixes
+
+* **watch:** make the watcher more robust, by checking connection, e.g. ([916ea7f](https://github.com/eeditiones/jinks-cli/commit/916ea7f1671b9c89c85f2b7d5ebb0609c8022702))
+
 ## [2.2.1](https://github.com/eeditiones/jinks-cli/compare/v2.2.0...v2.2.1) (2026-05-04)
 
 
