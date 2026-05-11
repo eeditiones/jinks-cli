@@ -1,3 +1,10 @@
+## [2.2.3](https://github.com/eeditiones/jinks-cli/compare/v2.2.2...v2.2.3) (2026-05-11)
+
+
+### Bug Fixes
+
+* jinks may now require confirmation before update if a profile has ([149722c](https://github.com/eeditiones/jinks-cli/commit/149722c28ee7697286477ed33a18362e65f2c183))
+
 ## [2.2.2](https://github.com/eeditiones/jinks-cli/compare/v2.2.1...v2.2.2) (2026-05-08)
 
 
