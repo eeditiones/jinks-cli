@@ -1,7 +1,16 @@
 import { printBanner } from '../lib/ui.js';
 import { loadConfigFromApplication, selectInstalledApplication } from '../lib/config.js';
 import { update } from '../lib/generator.js';
-import { serverOption, userOption, passwordOption, quietOption, reinstallOption, forceOption, syncOption } from '../options.js';
+import {
+    confirmBreakingOption,
+    serverOption,
+    userOption,
+    passwordOption,
+    quietOption,
+    reinstallOption,
+    forceOption,
+    syncOption,
+} from '../options.js';
 
 export function registerUpdate(program) {
     program.command('update')
@@ -15,6 +24,7 @@ export function registerUpdate(program) {
         .addOption(reinstallOption())
         .addOption(forceOption())
         .addOption(syncOption())
+        .addOption(confirmBreakingOption())
         .action(async (abbrev, options, command) => {
             printBanner(options);
             try {

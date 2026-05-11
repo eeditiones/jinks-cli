@@ -1,7 +1,16 @@
 import { printBanner, showApplicationLink } from '../lib/ui.js';
 import { loadConfigFromApplication, selectInstalledApplication, editOrCreateConfiguration } from '../lib/config.js';
 import { update } from '../lib/generator.js';
-import { serverOption, userOption, passwordOption, editOption, quietOption, reinstallOption, forceOption } from '../options.js';
+import {
+    confirmBreakingOption,
+    serverOption,
+    userOption,
+    passwordOption,
+    editOption,
+    quietOption,
+    reinstallOption,
+    forceOption,
+} from '../options.js';
 
 export function registerEdit(program) {
     program.command('edit')
@@ -15,6 +24,7 @@ export function registerEdit(program) {
         .addOption(quietOption())
         .addOption(reinstallOption())
         .addOption(forceOption())
+        .addOption(confirmBreakingOption())
         .action(async (abbrev, options, command) => {
             printBanner(options);
             try {

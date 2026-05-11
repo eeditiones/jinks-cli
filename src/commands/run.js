@@ -7,7 +7,7 @@ import { select } from '@inquirer/prompts';
 import { loadConfigFromApplication, selectInstalledApplication } from '../lib/config.js';
 import { loginUser } from '../lib/client.js';
 import { update } from '../lib/generator.js';
-import { serverOption, userOption, passwordOption } from '../options.js';
+import { confirmBreakingOption, serverOption, userOption, passwordOption } from '../options.js';
 
 export function registerRun(program) {
     program.command('run')
@@ -19,6 +19,7 @@ export function registerRun(program) {
         .addOption(serverOption())
         .addOption(userOption())
         .addOption(passwordOption())
+        .addOption(confirmBreakingOption())
         .action(async (abbrev, action, options, command) => {
             try {
                 let config;

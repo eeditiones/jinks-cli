@@ -8,3 +8,8 @@ export const reinstallOption = () => new Option('-r, --reinstall', 'Fully reinst
 export const forceOption = () => new Option('-a, --all', 'Ignore last modified date and check every file for changes.');
 export const quietOption = () => new Option('-q, --quiet', 'Do not print banner.');
 export const syncOption = () => new Option('--sync', 'Sync updated files to the local directory.');
+export const confirmBreakingOption = () =>
+    new Option(
+        '-y,--confirm-breaking',
+        'Proceed with updates that include breaking profile version changes without prompting (sends confirm=true to the generator API)',
+    );

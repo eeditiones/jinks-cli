@@ -6,6 +6,49 @@ import Table from 'cli-table3';
 import { checkbox, confirm } from '@inquirer/prompts';
 import { loginUser } from './client.js';
 
+export function isGeneratorBlockedByBreakingChanges(output) {
+    return (
+        output?.nextStep?.action === 'CONFIRM' &&
+        output?.['version-check']?.['has-breaking-changes'] === true
+    );
+}
+
+function buildGeneratorQuery(options, { confirm = false } = {}) {
+    const params = new URLSearchParams();
+    params.set('overwrite', options.reinstall ? 'reinstall' : options.all ? 'all' : 'quick');
+    if (confirm) {
+        params.set('confirm', 'true');
+    }
+    return params.toString();
+}
+
+async function postGenerator(client, options, requestBody, confirm) {
+    const qs = buildGeneratorQuery(options, { confirm });
+    return client.post(`/api/generator?${qs}`, requestBody);
+}
+
+function printBreakingChangeDetails(output) {
+    const vc = output?.['version-check'];
+    const breaking = vc?.['breaking-profiles'];
+    if (output?.nextStep?.message) {
+        console.log(chalk.yellow(output.nextStep.message));
+    }
+    if (breaking && typeof breaking === 'object' && Object.keys(breaking).length > 0) {
+        console.log(chalk.yellow('\nProfiles with major version updates (possible breaking changes):\n'));
+        const table = new Table({
+            head: [chalk.bold('Profile'), chalk.bold('Installed'), chalk.bold('New'), chalk.bold('Notes')],
+            colWidths: [22, 14, 14, 40],
+            wordWrap: true,
+        });
+        for (const [profile, info] of Object.entries(breaking)) {
+            const notes = info?.changes != null && String(info.changes).trim() !== '' ? String(info.changes) : '—';
+            table.push([profile, String(info?.installed ?? '—'), String(info?.new ?? '—'), notes]);
+        }
+        console.log(table.toString());
+        console.log('');
+    }
+}
+
 export async function update(config, options, client, resolve = []) {
     const requestBody = { config, resolve };
 
@@ -18,10 +61,8 @@ export async function update(config, options, client, resolve = []) {
 
     let spinner = ora('Starting generator ...').start();
 
-    const generatorResponse = await client.post(
-        `/api/generator?overwrite=${options.reinstall ? 'reinstall' : options.all ? 'all' : 'quick'}`,
-        requestBody,
-    );
+    const confirmBreaking = Boolean(options.confirmBreaking);
+    let generatorResponse = await postGenerator(client, options, requestBody, confirmBreaking);
 
     if (generatorResponse.status !== 200) {
         spinner.fail('Generator failed with error: ' + generatorResponse.status);
@@ -30,7 +71,52 @@ export async function update(config, options, client, resolve = []) {
     }
     spinner.stop();
 
-    const output = generatorResponse.data;
+    let output = generatorResponse.data;
+
+    if (isGeneratorBlockedByBreakingChanges(output)) {
+        if (confirmBreaking) {
+            console.error(
+                chalk.red('Update was blocked due to breaking changes, even with --confirm-breaking. Check server logs or response:'),
+            );
+            console.error(output);
+            return;
+        }
+        if (options.quiet) {
+            console.error(
+                chalk.red(
+                    'Breaking profile changes were detected. Re-run with --confirm-breaking to proceed non-interactively, or omit --quiet to confirm interactively.',
+                ),
+            );
+            return;
+        }
+        printBreakingChangeDetails(output);
+        const proceed = await confirm({
+            message: 'Proceed with this update despite breaking profile version changes?',
+            default: false,
+        });
+        if (!proceed) {
+            console.log(chalk.yellow('Update cancelled.'));
+            return;
+        }
+        spinner = ora('Applying update (breaking changes confirmed) ...').start();
+        generatorResponse = await postGenerator(client, options, requestBody, true);
+        spinner.stop();
+        if (generatorResponse.status !== 200) {
+            console.error(chalk.red('Generator failed with error: ' + generatorResponse.status));
+            console.error(generatorResponse.data);
+            return;
+        }
+        output = generatorResponse.data;
+        if (isGeneratorBlockedByBreakingChanges(output)) {
+            console.error(chalk.red('Update is still blocked after confirmation. Server response:'));
+            console.error(output);
+            return;
+        }
+    }
+
+    if (!Array.isArray(output.messages)) {
+        output.messages = [];
+    }
 
     if (output.messages.length > 0) {
         console.log(chalk.blue('Generator response:'));
