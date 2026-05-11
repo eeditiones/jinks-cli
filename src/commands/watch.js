@@ -84,6 +84,23 @@ function isTransientRequestError(error) {
         code === 'EHOSTUNREACH';
 }
 
+function formatError(error) {
+    if (error?.response?.data) {
+        const data = error.response.data;
+        if (typeof data === 'string') {
+            return data;
+        }
+        if (data?.message) {
+            return data.message;
+        }
+        return JSON.stringify(data);
+    }
+    if (error?.response?.statusText) {
+        return `${error.response.status} ${error.response.statusText}`;
+    }
+    return error.message;
+}
+
 async function withReconnect(client, authOptions, operation) {
     try {
         return await operation();
@@ -122,7 +139,7 @@ function startConnectionChecks(client, authOptions, intervalSeconds) {
             }
         } catch (error) {
             hadError = true;
-            console.error(chalk.yellow('!') + ' ' + chalk.dim(`connection check failed — ${error.message}`));
+            console.error(chalk.yellow('!') + ' ' + chalk.dim(`connection check failed — ${formatError(error)}`));
         } finally {
             running = false;
         }
@@ -178,7 +195,7 @@ export function registerWatch(program) {
             try {
                 await loginUser(client, authOptions);
             } catch (error) {
-                console.error(chalk.red(`Login failed: ${error.message}`));
+                console.error(chalk.red(`Login failed: ${formatError(error)}`));
                 process.exit(1);
             }
             const stopConnectionChecks = startConnectionChecks(client, authOptions, options.checkInterval);
@@ -201,7 +218,7 @@ export function registerWatch(program) {
                         await withReconnect(client, authOptions, () => uploadFile(client, localPath, watchDir, targetCollection));
                         console.log(chalk.green('↑') + ' ' + label('add', localPath));
                     } catch (error) {
-                        console.error(chalk.red('✗') + ' ' + label('add', localPath) + chalk.red(` — ${error.message}`));
+                        console.error(chalk.red('✗') + ' ' + label('add', localPath) + chalk.red(` — ${formatError(error)}`));
                     }
                 })
                 .on('change', async (localPath) => {
@@ -210,7 +227,7 @@ export function registerWatch(program) {
                         await withReconnect(client, authOptions, () => uploadFile(client, localPath, watchDir, targetCollection));
                         console.log(chalk.green('↑') + ' ' + label('change', localPath));
                     } catch (error) {
-                        console.error(chalk.red('✗') + ' ' + label('change', localPath) + chalk.red(` — ${error.message}`));
+                        console.error(chalk.red('✗') + ' ' + label('change', localPath) + chalk.red(` — ${formatError(error)}`));
                     }
                 })
                 .on('unlink', async (localPath) => {
@@ -219,7 +236,7 @@ export function registerWatch(program) {
                         await withReconnect(client, authOptions, () => deleteResource(client, localPath, watchDir, targetCollection));
                         console.log(chalk.red('✗') + ' ' + label('unlink', localPath));
                     } catch (error) {
-                        console.error(chalk.red('✗') + ' ' + label('unlink', localPath) + chalk.red(` — ${error.message}`));
+                        console.error(chalk.red('✗') + ' ' + label('unlink', localPath) + chalk.red(` — ${formatError(error)}`));
                     }
                 })
                 .on('addDir', async (localPath) => {
@@ -229,7 +246,7 @@ export function registerWatch(program) {
                         await withReconnect(client, authOptions, () => createCollection(client, localPath, watchDir, targetCollection));
                         console.log(chalk.blue('+ dir') + ' ' + label('addDir', localPath));
                     } catch (error) {
-                        console.error(chalk.red('✗') + ' ' + label('addDir', localPath) + chalk.red(` — ${error.message}`));
+                        console.error(chalk.red('✗') + ' ' + label('addDir', localPath) + chalk.red(` — ${formatError(error)}`));
                     }
                 })
                 .on('unlinkDir', async (localPath) => {
@@ -238,7 +255,7 @@ export function registerWatch(program) {
                         await withReconnect(client, authOptions, () => deleteResource(client, localPath, watchDir, targetCollection));
                         console.log(chalk.red('- dir') + ' ' + label('unlinkDir', localPath));
                     } catch (error) {
-                        console.error(chalk.red('✗') + ' ' + label('unlinkDir', localPath) + chalk.red(` — ${error.message}`));
+                        console.error(chalk.red('✗') + ' ' + label('unlinkDir', localPath) + chalk.red(` — ${formatError(error)}`));
                     }
                 })
                 .on('error', (error) => {
