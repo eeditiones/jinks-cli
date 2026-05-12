@@ -36,7 +36,7 @@
   "dependencies": {
     "@inquirer/prompts": "^8.1.0",
     "axios": "^1.13.2",
-    "axios-cookiejar-support": "^6.0.5",
+    "axios-cookiejar-support": "^7.0.0",
     "chalk": "^5.6.2",
     "chokidar": "^5.0.0",
     "cli-table3": "^0.6.5",
