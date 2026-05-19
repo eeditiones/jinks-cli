@@ -56,7 +56,7 @@ export async function update(config, options, client, resolve = []) {
         await loginUser(client, options);
     } catch (error) {
         console.error(error.message);
-        return;
+        process.exit(1);
     }
 
     let spinner = ora('Starting generator ...').start();
@@ -67,7 +67,7 @@ export async function update(config, options, client, resolve = []) {
     if (generatorResponse.status !== 200) {
         spinner.fail('Generator failed with error: ' + generatorResponse.status);
         console.error(generatorResponse.data);
-        return;
+        process.exit(1);
     }
     spinner.stop();
 
@@ -79,7 +79,7 @@ export async function update(config, options, client, resolve = []) {
                 chalk.red('Update was blocked due to breaking changes, even with --confirm-breaking. Check server logs or response:'),
             );
             console.error(output);
-            return;
+            process.exit(1);
         }
         if (options.quiet) {
             console.error(
@@ -87,7 +87,7 @@ export async function update(config, options, client, resolve = []) {
                     'Breaking profile changes were detected. Re-run with --confirm-breaking to proceed non-interactively, or omit --quiet to confirm interactively.',
                 ),
             );
-            return;
+            process.exit(1);
         }
         printBreakingChangeDetails(output);
         const proceed = await confirm({
@@ -104,13 +104,15 @@ export async function update(config, options, client, resolve = []) {
         if (generatorResponse.status !== 200) {
             console.error(chalk.red('Generator failed with error: ' + generatorResponse.status));
             console.error(generatorResponse.data);
-            return;
+            process.exit(1);
+
         }
         output = generatorResponse.data;
         if (isGeneratorBlockedByBreakingChanges(output)) {
             console.error(chalk.red('Update is still blocked after confirmation. Server response:'));
             console.error(output);
-            return;
+            process.exit(1);
+
         }
     }
 
@@ -187,7 +189,7 @@ export async function update(config, options, client, resolve = []) {
         if (deployResponse.status !== 200) {
             spinner.fail('Deploy failed with code ' + deployResponse.status + ': ' + deployResponse.data);
             console.error('Deploy failed:', deployResponse.status, deployResponse.data);
-            return;
+            process.exit(1);
         }
         spinner.stop();
         console.log(chalk.green('Done!'));
