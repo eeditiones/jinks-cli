@@ -11,6 +11,7 @@ export function initClient(options) {
             baseURL: options.server,
             jar: cookieJar,
             withCredentials: true,
+            validateStatus: null
         })
     );
 }
