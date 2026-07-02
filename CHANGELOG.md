@@ -1,3 +1,10 @@
+## [2.3.1](https://github.com/eeditiones/jinks-cli/compare/v2.3.0...v2.3.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* force release ([fa770e4](https://github.com/eeditiones/jinks-cli/commit/fa770e44b09696e1004c35a994e295afed64c354))
+
 # [2.3.0](https://github.com/eeditiones/jinks-cli/compare/v2.2.3...v2.3.0) (2026-07-02)
 
 
