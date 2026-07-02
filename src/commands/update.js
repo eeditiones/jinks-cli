@@ -1,5 +1,5 @@
 import { printBanner } from '../lib/ui.js';
-import { loadConfigFromApplication, selectInstalledApplication } from '../lib/config.js';
+import { loadConfigFromApplication, selectInstalledApplication, loadConfigFromFile, loadConfigFromStdin } from '../lib/config.js';
 import { update } from '../lib/generator.js';
 import {
     confirmBreakingOption,
@@ -10,6 +10,7 @@ import {
     reinstallOption,
     forceOption,
     syncOption,
+    configOption,
 } from '../options.js';
 
 export function registerUpdate(program) {
@@ -24,17 +25,22 @@ export function registerUpdate(program) {
         .addOption(reinstallOption())
         .addOption(forceOption())
         .addOption(syncOption())
+        .addOption(configOption())
         .addOption(confirmBreakingOption())
         .action(async (abbrev, options, command) => {
             printBanner(options);
             try {
                 let config;
-                if (abbrev) {
-                    config = await loadConfigFromApplication(abbrev, command.allConfigurations, command.invalidConfigurations ?? []);
+                if (options.config !== undefined) {
+                    config = options.config === true
+                        ? await loadConfigFromStdin()
+                        : loadConfigFromFile(options.config);
+                } else if (abbrev) {
+                    config = (await loadConfigFromApplication(abbrev, command.allConfigurations, command.invalidConfigurations ?? [])).config;
                 } else {
-                    config = await selectInstalledApplication(command.allConfigurations);
+                    config = (await selectInstalledApplication(command.allConfigurations)).config;
                 }
-                await update(config.config, options, command.client);
+                await update(config, options, command.client);
             } catch (error) {
                 console.error(error);
             }

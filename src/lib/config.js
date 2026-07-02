@@ -23,6 +23,23 @@ export function loadConfigFromFile(filePath) {
     }
 }
 
+export async function loadConfigFromStdin() {
+    try {
+        const chunks = [];
+        for await (const chunk of process.stdin) {
+            chunks.push(chunk);
+        }
+        const content = Buffer.concat(chunks).toString('utf8');
+        return JSON.parse(content);
+    } catch (error) {
+        console.error('Error reading or parsing config.json from stdin:', error.message);
+        if (process.env.NODE_ENV !== 'test') {
+            process.exit(1);
+        }
+        throw new Error(`Error reading or parsing config.json from stdin: ${error.message}`);
+    }
+}
+
 export async function expandConfig(config, client) {
     const spinner = ora('Expanding configuration...').start();
     try {
