@@ -1,3 +1,16 @@
+# [2.3.0](https://github.com/eeditiones/jinks-cli/compare/v2.2.3...v2.3.0) (2026-07-02)
+
+
+### Bug Fixes
+
+* **error-code:** do not throw (but not catch) errors codes ([56fb34a](https://github.com/eeditiones/jinks-cli/commit/56fb34a890c073aaf8d499a510904ea3c13868f7))
+* **generator:** return non-zero status code when generate failed ([bd38a6c](https://github.com/eeditiones/jinks-cli/commit/bd38a6c95528355b06f70f2d361c36ceda2d691f))
+
+
+### Features
+
+* **update:** add option to overwrite the active config.json with a new version ([01a8028](https://github.com/eeditiones/jinks-cli/commit/01a80286f0d47e004c394d7ae61af1b413934412))
+
 ## [2.2.3](https://github.com/eeditiones/jinks-cli/compare/v2.2.2...v2.2.3) (2026-05-11)
 
 
