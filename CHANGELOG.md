@@ -1,3 +1,10 @@
+## [2.3.2](https://github.com/eeditiones/jinks-cli/compare/v2.3.1...v2.3.2) (2026-07-07)
+
+
+### Bug Fixes
+
+* **update:** --sync implies --all ([8a5c1aa](https://github.com/eeditiones/jinks-cli/commit/8a5c1aa5eadacd12034763b0a0cfd4590be8e7bc))
+
 ## [2.3.1](https://github.com/eeditiones/jinks-cli/compare/v2.3.0...v2.3.1) (2026-07-02)
 
 
