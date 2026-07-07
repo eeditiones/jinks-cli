@@ -7,7 +7,7 @@ export const editOption = () => new Option('-e, --edit', 'Use text editor rather
 export const reinstallOption = () => new Option('-r, --reinstall', 'Fully reinstall application, overwriting existing files.');
 export const forceOption = () => new Option('-a, --all', 'Ignore last modified date and check every file for changes.');
 export const quietOption = () => new Option('-q, --quiet', 'Do not print banner.');
-export const syncOption = () => new Option('--sync', 'Sync updated files to the local directory.');
+export const syncOption = () => new Option('--sync', 'Sync updated files to the local directory (implies --all).').implies({ all: true });
 export const configOption = () =>
     new Option('-c, --config [path]', "Overwrite the app's config.json with the given file. If no path is given, read config.json from stdin.");
 export const confirmBreakingOption = () =>
