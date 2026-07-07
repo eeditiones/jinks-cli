@@ -46,6 +46,10 @@ jspm_packages/
 # dotenv environment variables file
 .env
 
+# VitePress build output and cache
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
 # IDE files
 .vscode/
 .idea/

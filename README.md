@@ -2,266 +2,50 @@
 
 A command-line interface tool for managing TEI Publisher applications with [Jinks](https://github.com/eeditiones/jinks).
 
+📖 **Full documentation: https://eeditiones.github.io/jinks-cli/**
+
 ## Installation
 
 ```bash
 npm install -g @teipublisher/jinks-cli
 ```
 
-## Usage
+After installation, the `jinks` command is available anywhere in your terminal.
 
-After installation, you can use the `jinks` command from anywhere in your terminal.
+## Commands at a glance
 
-### General Options
+| Command                          | Description                                                       |
+| -------------------------------- | ----------------------------------------------------------------- |
+| `jinks list`                     | List installed applications on the server                         |
+| `jinks create [abbrev]`          | Create a new application                                          |
+| `jinks edit [abbrev]`            | Change an existing application's configuration                    |
+| `jinks update [abbrev]`          | Update an existing application by running the generator           |
+| `jinks config [abbrev]`          | Print an application's configuration as JSON                      |
+| `jinks run [abbrev] [action]`    | Run an action (e.g. `reindex`) on an installed application        |
+| `jinks watch [dir]`              | Watch a directory and sync changes to the database               |
+| `jinks create-profile [abbrev]`  | Create a new profile (blueprint, feature, or theme)              |
+| `jinks edit-profile <dir>`       | Edit an existing profile configuration                            |
 
-#### `jinks -h` or `jinks --help`
-Display help information for the jinks CLI tool or for a specific command.
-
-```bash
-jinks -h
-jinks create --help
-```
-
-#### `jinks -v` or `jinks --version`
-Display the version number of the jinks CLI tool.
-
-```bash
-jinks -v
-```
-
-### Commands
-
-#### `jinks list`
-List all installed applications on the server.
-
-```bash
-jinks list
-```
-
-#### `jinks create [abbrev]`
-Create a new application. If no abbreviation is provided, you'll be prompted to enter one.
-
-```bash
-jinks create my-app
-```
-
-Options:
-- `-s, --server <address>` - Server address (default: http://localhost:8080/exist/apps/jinks)
-- `-u, --user <username>` - Username (default: tei)
-- `-p, --password <password>` - Password (default: simple)
-- `-e, --edit` - Use text editor rather than interactive mode
-- `-q, --quiet` - Do not print banner
-- `-c, --config <file>` - Use the given configuration file rather than interactive mode to create the application.
-
-#### `jinks edit [abbrev]`
-Edit an existing application configuration. If no application is provided, you'll be prompted to select from installed applications.
-
-```bash
-jinks edit my-app
-```
-
-Options:
-- `-s, --server <address>` - Server address
-- `-u, --user <username>` - Username
-- `-p, --password <password>` - Password
-- `-e, --edit` - Use text editor rather than interactive mode
-- `-q, --quiet` - Do not print banner
-- `-r, --reinstall` - Fully reinstall application, overwriting existing files
-- `-a, --all` - Ignore last modified date and check every file for changes
-
-#### `jinks update [abbrev]`
-Update an existing application. If no application is provided, you'll be prompted to select from installed applications.
-
-```bash
-jinks update my-app
-```
-
-Options:
-- `-s, --server <address>` - Server address
-- `-u, --user <username>` - Username
-- `-p, --password <password>` - Password
-- `-q, --quiet` - Do not print banner
-- `-r, --reinstall` - Fully reinstall application, overwriting existing files
-- `-a, --all` - Ignore last modified date and check every file for changes
-- `--sync` - Sync updated files to the local directory (also always syncs `.jinks.json` and `context.json`)
-
-#### `jinks config [abbrev]`
-Get configuration for an application.
-
-```bash
-jinks config my-app
-```
-
-Options:
-- `-x, --expand` - Show the expanded configuration
-- `-s, --server <address>` - Server address
-- `-u, --user <username>` - Username
-- `-p, --password <password>` - Password
-
-#### `jinks run [abbrev] [action]`
-Run an action on an installed application. If no action is provided, you'll be prompted to select from available actions.
-
-```bash
-jinks run my-app reindex
-```
-
-Options:
-- `-U, --update` - Perform an update of the application before running the action
-- `-s, --server <address>` - Server address
-- `-u, --user <username>` - Username
-- `-p, --password <password>` - Password
-
-#### `jinks create-profile [abbrev]`
-Create a new profile (blueprint, feature, or theme) and save it to a directory. If the resulting package is built (with ant) and installed into the database, it will appear within jinks as a profile users can select to extend.
-
-```bash
-jinks create-profile my-feature
-```
-
-Options:
-- `-s, --server <address>` - Server address
-- `-u, --user <username>` - Username
-- `-p, --password <password>` - Password
-- `-o, --out <file>` - Directory to save the profile configuration to
-- `-q, --quiet` - Do not print banner
-
-#### `jinks edit-profile <dir>`
-Edit an existing profile configuration.
-
-```bash
-jinks edit-profile ./my-feature
-```
-
-Options:
-- `-s, --server <address>` - Server address
-- `-u, --user <username>` - Username
-- `-p, --password <password>` - Password
-- `-q, --quiet` - Do not print banner
-
-#### `jinks watch [dir]`
-Watch a local directory for file changes and automatically synchronize them to the corresponding eXist-db collection. Reads the target collection and credentials from `repo.xml` in the watched directory.
-
-```bash
-jinks watch
-jinks watch ./my-app
-```
-
-The target collection (`/db/apps/<target>`) and database credentials are taken from the `<target>` and `<permissions>` elements in `repo.xml`. The `-u` and `-p` options override the credentials from `repo.xml` when needed.
-
-Synchronized events:
-
-| Event | Action |
-|---|---|
-| File added or changed | Upload to database |
-| File deleted | Remove from database |
-| Directory added | Create collection in database |
-| Directory deleted | Remove collection from database |
-
-The following paths are never synchronized: `.git`, `build`, `node_modules`, `*.xar`, `.DS_Store`.
-
-Options:
-- `-s, --server <address>` - Server address (default: http://localhost:8080/exist/apps/jinks)
-- `-u, --user <username>` - Override the username from `repo.xml`
-- `-p, --password <password>` - Override the password from `repo.xml`
-
-## Examples
-
-### Create a new application interactively
-```bash
-jinks create
-```
-
-### Create a new application with specific abbreviation
-```bash
-jinks create my-tei-app
-```
-
-### Edit an existing application (with interactive selection)
-```bash
-jinks edit
-```
-
-### Edit a specific application
-```bash
-jinks edit my-tei-app
-```
-
-### Update an application with force flag
-```bash
-jinks update my-tei-app --all
-```
-
-### Update and sync changed files to the local directory
-```bash
-jinks update my-tei-app --sync
-```
-
-### Run a reindex action (with interactive action selection)
-```bash
-jinks run my-tei-app
-```
-
-### Run a specific action
-```bash
-jinks run my-tei-app reindex
-```
-
-### Create a new feature profile
-```bash
-jinks create-profile my-feature --out ./my-feature
-```
-
-### Edit an existing profile
-```bash
-jinks edit-profile ./my-feature
-```
-
-### Watch the current directory and sync changes to the database
-```bash
-jinks watch
-```
-
-### Watch a specific application directory
-```bash
-jinks watch ./my-tei-app
-```
-
-### Connect to a different server
-```bash
-jinks list --server http://my-server:8080/exist/apps/jinks
-```
-
-## Interactive Features
-
-The CLI provides rich interactive features:
-
-- **Application Selection**: When no application abbreviation is provided, you'll be presented with a list of installed applications to choose from
-- **Action Selection**: When running actions, you can select from available actions if none is specified
-- **Profile Selection**: Interactive checkboxes for selecting features and dependencies
-- **Conflict Resolution**: Automatic detection and resolution of file conflicts during updates
-- **Dependency Management**: Automatic detection and addition of missing dependencies
-
-## Configuration
-
-The CLI connects to a Jinks server running on eXist-db. By default, it connects to:
-- Server: `http://localhost:8080/exist/apps/jinks`
-- Username: `tei`
-- Password: `simple`
-
-You can override these defaults using command-line options.
-
-## Profile Types
-
-When creating profiles, you can choose from three types:
-
-- **Blueprint**: Base configuration for an application
-- **Feature**: Reusable functionality module
-- **Theme**: Styling and appearance configuration
+Run `jinks --help` or `jinks <command> --help` for usage, and see the
+[documentation site](https://eeditiones.github.io/jinks-cli/) for the full reference,
+connection settings, and examples.
 
 ## Requirements
 
 - Node.js 20.0.0 or higher
 - A running eXist-db instance with Jinks installed
+
+## Documentation development
+
+The documentation site is built with [VitePress](https://vitepress.dev/) from the `docs/`
+directory and deployed to GitHub Pages on every push to `main`.
+
+```bash
+npm install
+npm run docs:dev      # local dev server with hot reload
+npm run docs:build    # production build (fails on broken links)
+npm run docs:preview  # preview the production build
+```
 
 ## License
 
@@ -269,4 +53,4 @@ GPL-3.0-or-later
 
 ## Repository
 
-https://github.com/eeditiones/jinks
+https://github.com/eeditiones/jinks-cli

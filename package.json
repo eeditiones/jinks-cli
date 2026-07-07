@@ -10,6 +10,9 @@
   "scripts": {
     "start": "node index.js",
     "test": "node --test",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "semantic-release": "semantic-release"
   },
   "keywords": [
@@ -51,7 +54,8 @@
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.0",
-    "semantic-release": "^25.0.2"
+    "semantic-release": "^25.0.2",
+    "vitepress": "^1.6.3"
   },
   "files": [
     "index.js",
