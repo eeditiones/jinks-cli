@@ -17,6 +17,7 @@ import { registerRun } from './src/commands/run.js';
 import { registerCreateProfile } from './src/commands/create-profile.js';
 import { registerEditProfile } from './src/commands/edit-profile.js';
 import { registerWatch } from './src/commands/watch.js';
+import { registerPackage } from './src/commands/package.js';
 
 export { loadConfigFromFile } from './src/lib/config.js';
 export { showApplicationLink, listInstalledApplications, printBanner } from './src/lib/ui.js';
@@ -63,6 +64,7 @@ registerRun(program);
 registerCreateProfile(program);
 registerEditProfile(program);
 registerWatch(program);
+registerPackage(program);
 
 const isMainModule = import.meta.url === `file://${process.argv[1]}` ||
     process.argv[1]?.endsWith('index.js') ||

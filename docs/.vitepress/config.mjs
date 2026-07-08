@@ -36,6 +36,7 @@ export default defineConfig({
                     { text: 'config', link: '/commands/config' },
                     { text: 'run', link: '/commands/run' },
                     { text: 'watch', link: '/commands/watch' },
+                    { text: 'package', link: '/commands/package' },
                     { text: 'create-profile', link: '/commands/create-profile' },
                     { text: 'edit-profile', link: '/commands/edit-profile' },
                 ],

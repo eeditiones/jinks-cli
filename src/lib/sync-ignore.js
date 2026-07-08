@@ -12,6 +12,37 @@ export const DEFAULT_WATCH_IGNORE_GLOBS = [
 ];
 
 /**
+ * Built-in excludes for `jinks package`, mirroring the `prepare` target of the
+ * Ant `build.tpl.xml` so the Node-built `.xar` matches `ant all`. Any
+ * `.existdb.json` `sync.ignore` globs are added on top of these (see
+ * {@link resolvePackageIgnoreGlobs}).
+ */
+export const PACKAGE_DEFAULT_IGNORE_GLOBS = [
+    'build/**',
+    '*.code-workspace',
+    '.devcontainer/**',
+    '**/.git/**',
+    // Ant's default fileset excludes strip these too; match for parity.
+    '**/.gitignore',
+    '**/.gitattributes',
+    '.github/**',
+    '**/.idea/**',
+    '.vscode/**',
+    '*.tmpl',
+    '*.properties',
+    'build.xml',
+    'README.md',
+    'node_modules/**',
+    'package*.json',
+    '.existdb.json',
+    'gulpfile.js',
+    'test/cypress/screenshots/**',
+    'test/cypress/videos/**',
+    '**/*.xar',
+    '**/.DS_Store',
+];
+
+/**
  * Read `sync.ignore` glob list from `.existdb.json` in watchDir.
  * @returns {string[] | null} `null` if the file or `sync.ignore` is absent; otherwise filtered patterns.
  */
@@ -45,6 +76,21 @@ export function resolveWatchIgnoreGlobs(watchDir) {
         return { fromConfig: false, globs: [...DEFAULT_WATCH_IGNORE_GLOBS] };
     }
     return { fromConfig: true, globs: ['.git/**', ...user] };
+}
+
+/**
+ * Resolve ignore globs for packaging: {@link PACKAGE_DEFAULT_IGNORE_GLOBS} plus
+ * any `.existdb.json` `sync.ignore` entries (union, not replace, so essential
+ * excludes are never dropped).
+ * @returns {{ fromConfig: boolean, globs: string[] }}
+ */
+export function resolvePackageIgnoreGlobs(dir) {
+    const user = readExistDbSyncIgnore(dir);
+    if (user === null) {
+        return { fromConfig: false, globs: [...PACKAGE_DEFAULT_IGNORE_GLOBS] };
+    }
+    const extra = user.filter((glob) => !PACKAGE_DEFAULT_IGNORE_GLOBS.includes(glob));
+    return { fromConfig: true, globs: [...PACKAGE_DEFAULT_IGNORE_GLOBS, ...extra] };
 }
 
 /**
