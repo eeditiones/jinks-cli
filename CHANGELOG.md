@@ -1,3 +1,10 @@
+# [2.4.0](https://github.com/eeditiones/jinks-cli/compare/v2.3.2...v2.4.0) (2026-07-08)
+
+
+### Features
+
+* add package/xar command ([a8cc0a2](https://github.com/eeditiones/jinks-cli/commit/a8cc0a24b3dbd3b6762ec62ff1646fb178b1a942))
+
 ## [2.3.2](https://github.com/eeditiones/jinks-cli/compare/v2.3.1...v2.3.2) (2026-07-07)
 
 
