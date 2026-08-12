@@ -1,3 +1,10 @@
+# [2.5.0](https://github.com/eeditiones/jinks-cli/compare/v2.4.0...v2.5.0) (2026-08-12)
+
+
+### Features
+
+* add --sync option to actions ([ce66c2a](https://github.com/eeditiones/jinks-cli/commit/ce66c2adbe13aff41741dd332a4aae54da6b67f5))
+
 # [2.4.0](https://github.com/eeditiones/jinks-cli/compare/v2.3.2...v2.4.0) (2026-07-08)
 
 
