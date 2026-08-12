@@ -53,6 +53,9 @@ jinks run my-tei-app
 
 # a specific action
 jinks run my-tei-app reindex
+
+# recompile ODDs and sync modules/pm-config.xql locally
+jinks run my-tei-app fix-odds --sync
 ```
 
 ## Watch a directory and sync changes to the database

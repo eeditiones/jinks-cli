@@ -3,11 +3,53 @@ import path from 'path';
 import chalk from 'chalk';
 import ora from 'ora';
 import Table from 'cli-table3';
+import { Option } from 'commander';
 import { select } from '@inquirer/prompts';
 import { loadConfigFromApplication, selectInstalledApplication } from '../lib/config.js';
 import { loginUser } from '../lib/client.js';
 import { update } from '../lib/generator.js';
 import { confirmBreakingOption, serverOption, userOption, passwordOption } from '../options.js';
+/**
+ * Collect path → source maps from action messages that include a `files` object.
+ * @param {unknown} output
+ * @returns {Record<string, string>}
+ */
+export function collectFilesFromActionOutput(output) {
+    const files = {};
+    const messages = Array.isArray(output) ? output : output != null ? [output] : [];
+    for (const message of messages) {
+        if (message && typeof message === 'object' && message.files && typeof message.files === 'object' && !Array.isArray(message.files)) {
+            for (const [relPath, source] of Object.entries(message.files)) {
+                if (typeof relPath === 'string' && typeof source === 'string') {
+                    files[relPath] = source;
+                }
+            }
+        }
+    }
+    return files;
+}
+
+/**
+ * Write path → source entries under `targetDir`.
+ * @param {Record<string, string>} files
+ * @param {string} targetDir
+ * @returns {{ written: string[], errors: string[] }}
+ */
+export function syncActionFiles(files, targetDir) {
+    const written = [];
+    const errors = [];
+    for (const [relPath, source] of Object.entries(files)) {
+        try {
+            const localPath = path.join(targetDir, relPath);
+            fs.mkdirSync(path.dirname(localPath), { recursive: true });
+            fs.writeFileSync(localPath, source, 'utf8');
+            written.push(relPath);
+        } catch {
+            errors.push(relPath);
+        }
+    }
+    return { written, errors };
+}
 
 export function registerRun(program) {
     program.command('run')
@@ -16,6 +58,7 @@ export function registerRun(program) {
         .summary('Run an action on an installed application')
         .option('-U, --update', 'Perform an update of the application before running the action')
         .option('-o, --output <file>', 'Save the output to the given directory')
+        .addOption(new Option('--sync', 'Write modified files returned by the action to the local directory'))
         .addOption(serverOption())
         .addOption(userOption())
         .addOption(passwordOption())
@@ -101,19 +144,37 @@ export function registerRun(program) {
                         output = actionResponse.data;
                     }
 
-                    if (Array.isArray(output) && output.length > 0) {
+                    const messages = Array.isArray(output) ? output : output != null ? [output] : [];
+                    if (messages.length > 0) {
                         console.log(chalk.blue('Action response:'));
                         const table = new Table({
                             head: [chalk.bold('Type'), chalk.bold('Message')],
                             colWidths: [15, 50],
                             wordWrap: true,
                         });
-                        output.forEach((message) => {
+                        messages.forEach((message) => {
                             if (message && message.type && message.message) {
                                 table.push([chalk.blue(message.type.padEnd(15)), message.message]);
                             }
                         });
                         console.log(table.toString());
+                    }
+
+                    const files = collectFilesFromActionOutput(output);
+                    if (options.sync) {
+                        const paths = Object.keys(files);
+                        if (paths.length === 0) {
+                            console.log(chalk.yellow('No modified files returned by the action to sync.'));
+                        } else {
+                            const syncSpinner = ora(`Syncing ${paths.length} file(s)...`).start();
+                            const { written, errors } = syncActionFiles(files, process.cwd());
+                            if (errors.length === 0) {
+                                syncSpinner.succeed(`Synced ${written.length} file(s) to ${process.cwd()}`);
+                            } else {
+                                syncSpinner.fail(`Sync completed with ${errors.length} error(s)`);
+                                errors.forEach((relPath) => console.error(chalk.red(`Failed to sync: ${relPath}`)));
+                            }
+                        }
                     }
 
                     console.log(chalk.green('Action completed successfully!'));

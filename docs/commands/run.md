@@ -23,6 +23,8 @@ messages returned by the action are printed as a table.
 - `-U, --update` — Perform an update of the application before running the action.
 - `-o, --output <file>` — Save the action's output to the given directory. Defaults to the
   current working directory. Only applies when the action returns a downloadable file.
+- `--sync` — Write modified files returned by the action (path → source) into the current
+  directory. For `fix-odds`, that is `modules/pm-config.xql`.
 - `-s, --server <address>` — Server address. Defaults to `http://localhost:8080/exist/apps/jinks` (or `$JINKS_SERVER`).
 - `-u, --user <username>` — Username. Defaults to `tei` (or `$JINKS_USER`).
 - `-p, --password <password>` — Password. Defaults to `simple` (or `$JINKS_PASSWORD`).
@@ -47,4 +49,10 @@ Update the application first, then run the action, saving any output to `./out`:
 
 ```bash
 jinks run my-tei-app export --update --output ./out
+```
+
+Recompile ODDs and sync `modules/pm-config.xql` to the local directory:
+
+```bash
+jinks run my-tei-app fix-odds --sync
 ```
