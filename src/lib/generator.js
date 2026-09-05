@@ -166,6 +166,14 @@ export async function update(config, options, client, resolve = []) {
                         params: { path: dbPath },
                         responseType: 'arraybuffer',
                     });
+                    if (sourceResponse.status !== 200) {
+                        syncErrors++;
+                        syncSpinner.warn(
+                            `Failed to sync: ${message.path} (HTTP ${sourceResponse.status})`,
+                        );
+                        syncSpinner.start();
+                        continue;
+                    }
                     const localPath = path.join(process.cwd(), message.path);
                     fs.mkdirSync(path.dirname(localPath), { recursive: true });
                     fs.writeFileSync(localPath, sourceResponse.data);
