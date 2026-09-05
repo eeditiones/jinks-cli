@@ -3,8 +3,9 @@ import path from 'path';
 import chalk from 'chalk';
 import ora from 'ora';
 import Table from 'cli-table3';
-import { checkbox, confirm } from '@inquirer/prompts';
+import { confirm } from '@inquirer/prompts';
 import { loginUser } from './client.js';
+import { conflictCheckbox } from './conflictCheckbox.js';
 
 export function isGeneratorBlockedByBreakingChanges(output) {
     return (
@@ -218,7 +219,12 @@ async function resolveConflicts(conflicts, config, options, client) {
     if (!resolve) return;
 
     const choices = conflicts.map((conflict) => ({ name: conflict.path, value: conflict.path }));
-    const resolved = await checkbox({ message: 'Select conflicts to resolve:', choices });
+    const resolved = await conflictCheckbox({
+        message: 'Select conflicts to resolve:',
+        choices,
+        conflicts,
+        client,
+    });
 
     console.log(chalk.blue('Re-running ...'));
     update(config, options, client, resolved);
