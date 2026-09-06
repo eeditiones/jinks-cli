@@ -30,6 +30,7 @@ export default defineConfig({
                 text: 'Commands',
                 items: [
                     { text: 'list', link: '/commands/list' },
+                    { text: 'profiles', link: '/commands/profiles' },
                     { text: 'create', link: '/commands/create' },
                     { text: 'edit', link: '/commands/edit' },
                     { text: 'update', link: '/commands/update' },

@@ -17,6 +17,7 @@ After installation, the `jinks` command is available anywhere in your terminal.
 | Command                          | Description                                                       |
 | -------------------------------- | ----------------------------------------------------------------- |
 | `jinks list`                     | List installed applications on the server                         |
+| `jinks profiles`                 | List available profiles (blueprints, features, themes)            |
 | `jinks create [abbrev]`          | Create a new application                                          |
 | `jinks edit [abbrev]`            | Change an existing application's configuration                    |
 | `jinks update [abbrev]`          | Update an existing application by running the generator           |

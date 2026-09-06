@@ -10,6 +10,19 @@ jinks update my-app
 The generator regenerates the application from its stored configuration and reports which
 files were updated, added, or are in conflict. Conflicts can be resolved interactively.
 
+## Resolving conflicts
+
+When the generator reports conflicts, you're shown a checkbox list of the conflicting files:
+
+- `↑`/`↓` — move between files.
+- `space` — select a file for re-generation (its local/server copy is overwritten).
+- `a` — select or deselect all files.
+- `i` — invert the current selection.
+- `v` — view a diff between the current file content and the incoming version, shown inline
+  below the list. Press `v` or `Escape` again to close it. Not available for binary or
+  otherwise unsupported files.
+- `⏎` — confirm the selection and re-run the generator for the selected files.
+
 ## Arguments
 
 - `[abbrev]` — Application to update. When omitted, you are prompted to select an installed

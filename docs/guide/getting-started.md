@@ -122,7 +122,8 @@ Most commands are interactive when information is missing:
 - **Profile selection** — features and dependencies are chosen through interactive
   checkboxes.
 - **Conflict resolution** — file conflicts detected during an update can be resolved
-  interactively.
+  interactively, including viewing a diff between the local and incoming version of each
+  conflicting file (see [`jinks update`](/commands/update#resolving-conflicts)).
 - **Dependency management** — missing dependencies are detected and can be added
   automatically.
 
