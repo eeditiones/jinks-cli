@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 
 import { initClient, fetchAvailableConfigurations } from './src/lib/client.js';
 import { registerList } from './src/commands/list.js';
+import { registerProfiles } from './src/commands/profiles.js';
 import { registerCreate } from './src/commands/create.js';
 import { registerEdit } from './src/commands/edit.js';
 import { registerUpdate } from './src/commands/update.js';
@@ -20,7 +21,7 @@ import { registerWatch } from './src/commands/watch.js';
 import { registerPackage } from './src/commands/package.js';
 
 export { loadConfigFromFile } from './src/lib/config.js';
-export { showApplicationLink, listInstalledApplications, printBanner } from './src/lib/ui.js';
+export { showApplicationLink, listInstalledApplications, listProfiles, printBanner } from './src/lib/ui.js';
 export { splitConfigurationsResponse } from './src/lib/client.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -56,6 +57,7 @@ program.hook('preAction', async (thisCommand, actionCommand) => {
 });
 
 registerList(program);
+registerProfiles(program);
 registerCreate(program);
 registerEdit(program);
 registerUpdate(program);

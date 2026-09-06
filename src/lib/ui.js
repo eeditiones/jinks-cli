@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import figlet from 'figlet';
 import terminalLink from 'terminal-link';
+import Table from 'cli-table3';
 
 export function printBanner(options) {
     if (!options.quiet) {
@@ -43,4 +44,29 @@ export function listInstalledApplications(allConfigurations, serverUrl, invalidC
             if (item.error?.path) console.log(chalk.dim(`    ${item.error.path}`));
         }
     }
+}
+
+export function listProfiles(allConfigurations) {
+    const profiles = allConfigurations
+        .filter((item) => item.type === 'profile' && item.config?.type !== 'disabled')
+        .sort((a, b) => {
+            const category = (a.config?.type || '').localeCompare(b.config?.type || '');
+            return category !== 0 ? category : (a.profile || '').localeCompare(b.profile || '');
+        });
+
+    if (profiles.length === 0) {
+        console.log(chalk.yellow('No profiles found.'));
+        return;
+    }
+
+    console.log(chalk.blue('Available profiles:\n'));
+    const table = new Table({
+        head: [chalk.bold('Name'), chalk.bold('Category'), chalk.bold('Label'), chalk.bold('Description')],
+        colWidths: [20, 12, 20, 48],
+        wordWrap: true,
+    });
+    profiles.forEach((item) => {
+        table.push([item.profile ?? '', item.config?.type ?? '', item.config?.label ?? '', item.description || '']);
+    });
+    console.log(table.toString());
 }
