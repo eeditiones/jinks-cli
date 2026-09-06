@@ -1,3 +1,16 @@
+# [2.6.0](https://github.com/eeditiones/jinks-cli/compare/v2.5.0...v2.6.0) (2026-09-06)
+
+
+### Bug Fixes
+
+* do not write sync result file to disk if response status indicates error ([42b3725](https://github.com/eeditiones/jinks-cli/commit/42b3725709875911e874ff53e3ff56e274fdf2f8))
+
+
+### Features
+
+* add command to list available profiles ([4d1ca01](https://github.com/eeditiones/jinks-cli/commit/4d1ca015f124a5371549ed742c02ff2007968eee))
+* add option to view a diff for each conflict ([7a6543e](https://github.com/eeditiones/jinks-cli/commit/7a6543ee0ca4c9a557749103283b70b3f0646517))
+
 # [2.5.0](https://github.com/eeditiones/jinks-cli/compare/v2.4.0...v2.5.0) (2026-08-12)
 
 
